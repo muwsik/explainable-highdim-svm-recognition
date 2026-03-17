@@ -1,0 +1,36 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+
+# Build
+Debug/
+Release/
+x64/
+x86/
+build/
+out/
+
+# C++
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.idb
+*.tlog
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
