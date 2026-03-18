@@ -5,7 +5,7 @@ import os
 Generating data based on the model from the article (3.2.1)
     N: objects number of same class
     p: the number of features
-    a: side size of the hypercube
+    a: half side size of the hypercube
     c: exponent parameter
     seed: initial state of the random number generator
 Return
@@ -69,7 +69,7 @@ def saveSample(filename, X, Y):
     data = np.column_stack((Y, X))
 
     try:
-        np.savetxt(filename, data, delimiter=" ", fmt="%.6f")
+        np.savetxt(filename, data, delimiter = " ", fmt = "%.6f")
     except IOError as e:
         raise IOError(f"Cannot write file {filename}: {e}")
 
@@ -79,7 +79,7 @@ def loadSample(filename):
         raise FileNotFoundError(f"File '{filename}' does not exist")
 
     try:
-        data = np.loadtxt(filename, delimiter=" ")
+        data = np.loadtxt(filename, delimiter = " ")
     except Exception as e:
         raise ValueError(f"Error reading file '{filename}': {e}")
 

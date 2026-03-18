@@ -70,8 +70,13 @@ if __name__ == "__main__":
 
     X2, Y2 = generator.generateLinearSample(N, 2, a, c, seed = 1)
     plot_2d(X2, Y2)
+        
+    generator.saveSample(r"./test.csv", X2, Y2)
 
-    X3, Y3 = generator.generateLinearSample(N, 3, a, c, seed = 1)
-    plot_3d(X3, Y3)
+    X, Y = generator.loadSample(r"./test.csv")
+    plot_2d(X, Y)
+
+    # X3, Y3 = generator.generateLinearSample(N, 3, a, c, seed = 1)
+    # plot_3d(X3, Y3)
 
     plt.show()
