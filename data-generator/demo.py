@@ -107,7 +107,7 @@ if __name__ == "__main__":
     halfSize = 10
     sigma = 1
 
-    # 2D case
+    ## 2D generation and visualization
     # linGenerator = gen.LinearGenerator(tempSeed)
     # baseLinearSample = linGenerator.base(
     #     objNum,
@@ -128,34 +128,55 @@ if __name__ == "__main__":
     # plt.title(f"a = [1, 0]")
     # plot2D(customLinearSample, a2D)
     # plt.title(f"a = {a2D}")
+    # plt.show()
 
-    #3D case
-    linGenerator = gen.LinearGenerator(tempSeed)
-    baseLinearSample = linGenerator.base(
+    ## 3D generation and visualization
+    # linGenerator = gen.LinearGenerator(tempSeed)
+    # baseLinearSample = linGenerator.base(
+    #     objNum,
+    #     3,
+    #     halfSize,
+    #     sigma
+    # )
+
+    # customLinearSample, a3D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    #     objNum, 
+    #     3, 
+    #     halfSize, 
+    #     sigma, 
+    #     vectorA = [1, 1, 1]
+    # )
+    
+    # plot3D(baseLinearSample, [1, 0, 0])
+    # plt.title(f"a = [1, 0, 0]")
+    # plot3D(customLinearSample, a3D)
+    # plt.title(f"a = {a3D}")
+    # plt.show()
+
+
+    ## TXT save and load
+    tempSample = gen.LinearGenerator(tempSeed).base(
         objNum,
         3,
         halfSize,
         sigma
     )
-
-    customLinearSample, a3D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-        objNum, 
-        3, 
-        halfSize, 
-        sigma, 
-        vectorA = [1, 1, 1]
-    )
-
-    customLinearSample.Save(r'D:\test2.txt')
+    tempSample.saveTXT(r'D:\tempSample.txt')
     
     sampleFromFile = gen.LinearSample()
-    sampleFromFile.Load(r'D:\test2.txt')
+    sampleFromFile.loadTXT(r'D:\tempSample.txt')
 
-    # plot3D(baseLinearSample, [1, 0, 0])
-    # plt.title(f"a = [1, 0, 0]")
-    plot3D(customLinearSample, a3D)
-    plt.title(f"a = {a3D}")
-    plot3D(sampleFromFile, a3D)
-    plt.title(f"a = {a3D}")
 
-    plt.show()
+    ## binary save and load
+    tempSample = gen.LinearGenerator(tempSeed).base(
+        objNum,
+        3,
+        halfSize,
+        sigma
+    )
+    tempSample.saveBin(r'D:\tempSample.npz')
+    
+    sampleFromFile = gen.LinearSample()
+    sampleFromFile.loadBin(r'D:\tempSample.npz')
+    
+    pass

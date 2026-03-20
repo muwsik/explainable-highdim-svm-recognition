@@ -1,7 +1,6 @@
 import numpy as np
 import os
 
-import matplotlib.pyplot as plt
 
 # Organization of sample data storage
 class LinearSample:
@@ -9,53 +8,64 @@ class LinearSample:
         self.X = _X
         self.Y = _Y
 
-    def Save(self, filename, append = True, delim = ' '):
-        if (self.X is None) or (self.Y is None):
-            raise ValueError("Incorrect data for saving")
 
-        if self.X.ndim != 2:
-            raise ValueError("X must be a 2D array (object-feature matrix)")
+    @staticmethod
+    def __check(X, Y):
+        if X is None or Y is None:
+            raise ValueError("No data")
 
-        if self.Y.ndim != 1:
-            raise ValueError("Y must be a 1D array")
+        if X.ndim != 2:
+            raise ValueError("X must be 2D")
 
-        if self.X.shape[0] != self.Y.shape[0]:
-            raise ValueError(
-                f"Number of objects mismatch: X has {self.X.shape[0]}, Y has {self.Y.shape[0]}"
-            )
+        if Y.ndim != 1:
+            raise ValueError("Y must be 1D")
+
+        if X.shape[0] != Y.shape[0]:
+            raise ValueError("X and Y size mismatch")
+
+        u = np.unique(Y)
+        if not np.all(np.isin(u, [-1, 1])):
+            raise ValueError(f"Unexpected classes: {u}")
+
+
+    def saveTXT(self, filename, append = True, delim = ' '):
+        LinearSample.__check(self.X, self.Y)
 
         data = np.column_stack((self.Y, self.X))
 
-        try:
-            with open(filename, "a" if append else "w") as tempFile:
-                np.savetxt(tempFile, data, delimiter = delim, fmt = "%.3f")
-        except IOError as e:
-            raise IOError(f"Cannot write file {filename}: {e}")
+        with open(filename, "a" if append else "w") as tempF:
+            np.savetxt(tempF, data, delimiter = delim, fmt = "%.3f")
 
-    def Load(self, filename, delim = ' '):
+
+    def loadTXT(self, filename, delim = ' '):
         if not os.path.exists(filename):
-            raise FileNotFoundError(f"File '{filename}' does not exist")
+            raise FileNotFoundError(filename)
 
-        try:
-            data = np.loadtxt(filename, delimiter = delim)
-        except Exception as e:
-            raise ValueError(f"Error reading file '{filename}': {e}")
+        data = np.loadtxt(filename, delimiter = delim, dtype = np.float32)
 
-        if data.size == 0:
-            raise ValueError("File is empty")
-
-        if data.ndim == 1:
-            data = data.reshape(1, -1)
-
-        if data.shape[1] < 2:
-            raise ValueError("File must contain at least two columns: y and x1")
-
-        self.Y = data[:, 0]
+        self.Y = data[:, 0].astype(np.int8)
         self.X = data[:, 1:]
 
-        unique_classes = np.unique(self.Y)
-        if not np.all(np.isin(unique_classes, [-1, 1])):
-            raise ValueError(f"Unexpected class labels: {unique_classes}")
+        LinearSample.__check(self.X, self.Y)
+
+
+    def saveBin(self, filename, append = True):
+        LinearSample.__check(self.X, self.Y)
+
+        np.savez_compressed(filename, X = self.X, Y = self.Y)
+
+
+    def loadBin(self, filename):
+        data = np.load(filename)
+
+        if "X" not in data or "Y" not in data:
+            raise ValueError("Invalid file")
+
+        self.X = data["X"]
+        self.Y = data["Y"]
+        
+        LinearSample.__check(self.X, self.Y)
+
 
 
 # Generating different variants of linear samples
@@ -67,9 +77,12 @@ class LinearGenerator:
     # generating a truncated exponential distribution
     @staticmethod
     def __truncExp(n, sigma, length):        
-        return -np.log(
-            1 - np.random.uniform(0, 1, n) * (1 - np.exp(-sigma * length))
-        ) / sigma
+        u = np.random.uniform(0, 1, n).astype(np.float32)
+        return (
+            -np.log(
+                1 - u * (1 - np.exp(-sigma * length))
+            ) / sigma
+        ).astype(np.float32)
 
     def base(self, objNum, featNum, halfSize, sigma): 
         """
@@ -96,12 +109,12 @@ class LinearGenerator:
         # feature negative class in [-1, halfSize]
         negExp = -1 + LinearGenerator.__truncExp(numberExpDistPoints, sigma, halfSize + 1)
         # feature negative class in [-halfSize, -1]
-        negUniform = np.random.uniform(-halfSize, -1, numberUniformDistPoints)
+        negUniform = np.random.uniform(-halfSize, -1, numberUniformDistPoints).astype(np.float32)
 
         # feature positive class in [-halfSize, 1]
         posExp = 1 - LinearGenerator.__truncExp(numberExpDistPoints, sigma, halfSize + 1)
         # feature positive class in [1, halfSize]
-        posUniform = np.random.uniform(1, halfSize, numberUniformDistPoints)
+        posUniform = np.random.uniform(1, halfSize, numberUniformDistPoints).astype(np.float32)
 
         # first feature
         firstFeature = np.concatenate([
@@ -110,11 +123,15 @@ class LinearGenerator:
         ])
 
         # other features with uniform distribution
-        otherFeatures = np.random.uniform(-halfSize, halfSize, size = (2 * objNum, featNum - 1))
+        otherFeatures = np.random.uniform(
+            -halfSize,
+            halfSize,
+            size = (2 * objNum, featNum - 1)
+            ).astype(np.float32)
 
         # object-feature matrix
         X = np.column_stack([firstFeature, otherFeatures])
-        Y = np.concatenate([np.ones(objNum), -1 * np.ones(objNum)])
+        Y = np.concatenate([np.ones(objNum, dtype = np.int8), -1 * np.ones(objNum, dtype = np.int8)])
 
         return LinearSample(X, Y)
 
@@ -134,23 +151,23 @@ class LinearGenerator:
         """
 
         if (vectorA is None):
-            vectorA = np.random.normal(size = featNum)
+            vectorA = np.random.normal(size = featNum, dtype = np.float32)
 
-        vectorA = np.array(vectorA, dtype = float)
+        vectorA = np.array(vectorA, dtype = np.float32)
         if len(vectorA) != featNum:
             raise ValueError("len(a) must be featNum")   
 
         # construct an orthonormal basis by Householder  
         vectorA = vectorA / np.linalg.norm(vectorA)
-        e1 = np.zeros(featNum)
-        e1[0] = 1.0 # because we will use the data for the case a = [1,0,0,0,...,0]
+        e1 = np.zeros(featNum, dtype = np.float32)
+        e1[0] = 1.0 # because we will use the sample with a = [1,0,0,0,...,0]
         v = e1 - vectorA
         normV = np.linalg.norm(v)
         
-        H = np.eye(featNum)
+        H = np.eye(featNum, dtype = np.float32)
         if normV >= 1e-6:
             v = v / normV
-            H = H - 2 * np.outer(v, v)            
+            H = H - 2 * np.outer(v, v).astype(np.float32)            
             
         # generate base linear model
         baseSample = self.base(objNum, featNum, halfSize, sigma)
