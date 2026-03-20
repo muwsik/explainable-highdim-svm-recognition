@@ -9,7 +9,7 @@ class LinearSample:
         self.X = _X
         self.Y = _Y
 
-    def Save(self, filename, delim = ' '):
+    def Save(self, filename, append = True, delim = ' '):
         if (self.X is None) or (self.Y is None):
             raise ValueError("Incorrect data for saving")
 
@@ -27,7 +27,8 @@ class LinearSample:
         data = np.column_stack((self.Y, self.X))
 
         try:
-            np.savetxt(filename, data, delimiter = delim, fmt = "%.6f")
+            with open(filename, "a" if append else "w") as tempFile:
+                np.savetxt(tempFile, data, delimiter = delim, fmt = "%.3f")
         except IOError as e:
             raise IOError(f"Cannot write file {filename}: {e}")
 

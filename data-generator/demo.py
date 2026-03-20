@@ -105,7 +105,7 @@ tempSeed = None
 if __name__ == "__main__":
     objNum = 100
     halfSize = 10
-    sigma = 0.5
+    sigma = 1
 
     # 2D case
     # linGenerator = gen.LinearGenerator(tempSeed)
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     #     sigma
     # )   
 
-    # suctomLinearSample, a2D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    # customLinearSample, a2D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
     #     objNum, 
     #     2, 
     #     halfSize, 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     # plot2D(baseLinearSample, [1, 0])
     # plt.title(f"a = [1, 0]")
-    # plot2D(suctomLinearSample, a2D)
+    # plot2D(customLinearSample, a2D)
     # plt.title(f"a = {a2D}")
 
     #3D case
@@ -138,17 +138,24 @@ if __name__ == "__main__":
         sigma
     )
 
-    suctomLinearSample, a3D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    customLinearSample, a3D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
         objNum, 
         3, 
         halfSize, 
         sigma, 
         vectorA = [1, 1, 1]
     )
+
+    customLinearSample.Save(r'D:\test2.txt')
     
-    plot3D(baseLinearSample, [1, 0, 0])
-    plt.title(f"a = [1, 0, 0]")
-    plot3D(suctomLinearSample, a3D)
+    sampleFromFile = gen.LinearSample()
+    sampleFromFile.Load(r'D:\test2.txt')
+
+    # plot3D(baseLinearSample, [1, 0, 0])
+    # plt.title(f"a = [1, 0, 0]")
+    plot3D(customLinearSample, a3D)
+    plt.title(f"a = {a3D}")
+    plot3D(sampleFromFile, a3D)
     plt.title(f"a = {a3D}")
 
     plt.show()
