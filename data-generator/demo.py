@@ -12,22 +12,22 @@ def plot2D(tempLinearSample, vectorA):
 
     plt.scatter(pos[:, 0], pos[:, 1], c = "blue", label = "+1", alpha = 0.6)
     plt.scatter(neg[:, 0], neg[:, 1], c = "red", label = "-1", alpha = 0.6)
-    plt.scatter(neg[5, 0], neg[5, 1], c = "green", label = "-1", s = 100)
 
     # separating rule
     vectorA = np.array(vectorA, dtype = float)
     xmin, xmax = np.min(tempLinearSample.X[:, 0]), np.max(tempLinearSample.X[:, 0])
     ymin, ymax = np.min(tempLinearSample.X[:, 1]), np.max(tempLinearSample.X[:, 1])
     if abs(vectorA[1]) >= 1e-6:
-        x = np.linspace(xmin, xmax, 3)
-        plt.plot(x, -(vectorA[0] / vectorA[1]) * x, "k--", label = "rule")
+        xLine = np.linspace(xmin, xmax, 2)
+        yLine = -(vectorA[0] / vectorA[1]) * xLine
+
+        plt.plot(xLine, yLine, "k-", label = "rule")
+        plt.plot(xLine - 1, yLine - 1, "k--", label = "border")
+        plt.plot(xLine + 1, yLine + 1, "k--")
     else:
-        plt.axvline(
-            0,
-            color = "black",
-            linestyle = "--",
-            label = "rule"
-        )
+        plt.axvline(0, color = "black", linestyle = "-", label = "rule")
+        plt.axvline(-1, color = "black", linestyle = "--", label = "border")
+        plt.axvline(1, color = "black", linestyle = "--")
 
     plt.xlim(xmin - 1, xmax + 1)
     plt.ylim(ymin - 1, ymax + 1)   
@@ -38,6 +38,34 @@ def plot2D(tempLinearSample, vectorA):
 
 
 # 3D visualization
+def drawPlane(a, c, xmin, xmax, ymin, ymax, zmin, zmax, alpha, color):    
+    if abs(a[0]) >= 1e-6:
+        Y, Z = np.meshgrid(
+            np.linspace(ymin, ymax, 10),
+            np.linspace(zmin, zmax, 10)
+        )
+        X = (c - a[1]*Y - a[2]*Z) / a[0]
+
+    elif abs(a[1]) >= 1e-6:
+        X, Z = np.meshgrid(
+            np.linspace(xmin, xmax, 10),
+            np.linspace(zmin, zmax, 10)
+        )
+        Y = (c - a[0]*X - a[2]*Z) / a[1]
+
+    else:
+        X, Y = np.meshgrid(
+            np.linspace(xmin, xmax, 10),
+            np.linspace(ymin, ymax, 10)
+        )
+        Z = (c - a[0]*X - a[1]*Y) / a[2]
+
+    plt.gca().plot_surface(
+        X, Y, Z,
+        alpha = alpha,
+        color = color
+    )
+
 def plot3D(tempLinearSample, vectorA):
     pos = tempLinearSample.X[tempLinearSample.Y ==  1]
     neg = tempLinearSample.X[tempLinearSample.Y == -1]
@@ -56,31 +84,10 @@ def plot3D(tempLinearSample, vectorA):
     xmin, xmax = np.min(tempLinearSample.X[:, 0]), np.max(tempLinearSample.X[:, 0])
     ymin, ymax = np.min(tempLinearSample.X[:, 1]), np.max(tempLinearSample.X[:, 1])
     zmin, zmax = np.min(tempLinearSample.X[:, 2]), np.max(tempLinearSample.X[:, 2])
-    if abs(vectorA[0]) >= 1e-6:
-        Y, Z = np.meshgrid(
-            np.linspace(ymin, ymax, 10),
-            np.linspace(zmin, zmax, 10)
-        )
-        X = -(vectorA[1] * Y + vectorA[2] * Z) / vectorA[0]
-    elif abs(vectorA[1]) >= 1e-6:
-        X, Z = np.meshgrid(
-            np.linspace(xmin, xmax, 10),
-            np.linspace(zmin, zmax, 10)
-        )
-        Y = -(vectorA[0] * X + vectorA[2] * Z) / vectorA[1]
-
-    else:
-        X, Y = np.meshgrid(
-            np.linspace(xmin, xmax, 10),
-            np.linspace(ymin, ymax, 10)
-        )
-        Z = -(vectorA[0] * X + vectorA[1] * Y) / vectorA[2]
-
-    ax.plot_surface(
-        X, Y, Z,
-        alpha = 0.3,
-        color = "gray"
-    )
+    
+    drawPlane(vectorA, 0, xmin, xmax, ymin, ymax, zmin, zmax, 0.3, "green")
+    # drawPlane(vectorA, -1, xmin, xmax, ymin, ymax, zmin, zmax, 0.1, "gray")
+    # drawPlane(vectorA, +1, xmin, xmax, ymin, ymax, zmin, zmax, 0.1, "gray")
 
     ax.set_xlim(xmin - 1, xmax + 1)
     ax.set_ylim(ymin - 1, ymax + 1)
@@ -93,34 +100,34 @@ def plot3D(tempLinearSample, vectorA):
 
     
 # DEMO
-tempSeed = 1
+tempSeed = None
 
 if __name__ == "__main__":
-    objNum = 10
+    objNum = 100
     halfSize = 10
-    sigma = 0.75
+    sigma = 0.5
 
     # 2D case
-    linGenerator = gen.LinearGenerator(tempSeed)
-    baseLinearSample = linGenerator.base(
-        objNum,
-        2,
-        halfSize,
-        sigma
-    )   
+    # linGenerator = gen.LinearGenerator(tempSeed)
+    # baseLinearSample = linGenerator.base(
+    #     objNum,
+    #     2,
+    #     halfSize,
+    #     sigma
+    # )   
 
-    suctomLinearSample, a2D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-        objNum, 
-        2, 
-        halfSize, 
-        sigma, 
-        vectorA = [1, 1]
-    )
+    # suctomLinearSample, a2D = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    #     objNum, 
+    #     2, 
+    #     halfSize, 
+    #     sigma, 
+    #     vectorA = [10, 1]
+    # )
 
-    plot2D(baseLinearSample, [1, 0])
-    plt.title(f"a = [1, 0]")
-    plot2D(suctomLinearSample, a2D)
-    plt.title(f"a = {a2D}")
+    # plot2D(baseLinearSample, [1, 0])
+    # plt.title(f"a = [1, 0]")
+    # plot2D(suctomLinearSample, a2D)
+    # plt.title(f"a = {a2D}")
 
     #3D case
     linGenerator = gen.LinearGenerator(tempSeed)

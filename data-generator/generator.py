@@ -61,8 +61,15 @@ class LinearSample:
 class LinearGenerator:
     def __init__(self, seed = None):
         if seed is not None:
-            np.random.seed(seed)
-    
+            np.random.seed(seed)    
+
+    # generating a truncated exponential distribution
+    @staticmethod
+    def __truncExp(n, sigma, length):        
+        return -np.log(
+            1 - np.random.uniform(0, 1, n) * (1 - np.exp(-sigma * length))
+        ) / sigma
+
     def base(self, objNum, featNum, halfSize, sigma): 
         """
         Generating data based on the linear model with direction vector a = [1,0,0,0,...,0]
@@ -74,39 +81,38 @@ class LinearGenerator:
             LinearSample.X: object-feature matrix
             LinearSample.Y: class of an object in object-feature matrix
         """  
-
-        # objects number of same class for uniform distribution
-        n_left = abs(
-            halfSize * objNum / (
-                halfSize + (1 / sigma) * (1 - np.exp(-sigma * halfSize))
-                )
-            )
         
-        # objects number of same class for uniform distribution
-        n_left = int(n_left)
-
         # objects number of same class for exponential distribution
-        n_right = objNum - n_left
+        numberExpDistPoints = int(
+            ( objNum * (1 - np.exp(-sigma * (halfSize + 1))) )
+            /
+            ( sigma * (halfSize - 1) + (1 - np.exp(-sigma * (halfSize + 1))) ) 
+        )
 
-        # first feature positive class
-        pos_exp_obj = np.random.exponential(scale = 1/sigma, size = n_right)
-        pos_norm_obj = np.random.uniform(-halfSize, 0, size = n_left)
+        # objects number of same class for uniform distribution
+        numberUniformDistPoints = objNum - numberExpDistPoints
 
-        # first feature negative class
-        neg_exp_obj = -1 * np.random.exponential(scale = 1/sigma, size = n_right)
-        neg_norm_obj = -1 * np.random.uniform(-halfSize, 0, size = n_left)
+        # feature negative class in [-1, halfSize]
+        negExp = -1 + LinearGenerator.__truncExp(numberExpDistPoints, sigma, halfSize + 1)
+        # feature negative class in [-halfSize, -1]
+        negUniform = np.random.uniform(-halfSize, -1, numberUniformDistPoints)
+
+        # feature positive class in [-halfSize, 1]
+        posExp = 1 - LinearGenerator.__truncExp(numberExpDistPoints, sigma, halfSize + 1)
+        # feature positive class in [1, halfSize]
+        posUniform = np.random.uniform(1, halfSize, numberUniformDistPoints)
 
         # first feature
-        first_feature = np.concatenate([
-            np.concatenate([pos_exp_obj, pos_norm_obj]), 
-            np.concatenate([neg_exp_obj, neg_norm_obj])
+        firstFeature = np.concatenate([
+            np.concatenate([posExp, posUniform]), 
+            np.concatenate([negExp, negUniform])
         ])
 
         # other features with uniform distribution
-        other_features = np.random.uniform(-halfSize, halfSize, size=(2 * objNum, featNum - 1))
+        otherFeatures = np.random.uniform(-halfSize, halfSize, size = (2 * objNum, featNum - 1))
 
         # object-feature matrix
-        X = np.column_stack([first_feature, other_features])
+        X = np.column_stack([firstFeature, otherFeatures])
         Y = np.concatenate([np.ones(objNum), -1 * np.ones(objNum)])
 
         return LinearSample(X, Y)
