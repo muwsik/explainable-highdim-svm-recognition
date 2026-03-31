@@ -135,7 +135,7 @@ class LinearGenerator:
 
         return LinearSample(X, Y)
 
-    def specifiedHyperplane(self, objNum, featNum, halfSize, sigma, vectorA = None): 
+    def specifiedHyperplane(self, objNum, featNum, halfSize, sigma, vectorA = None, offset = None): 
         """
         Generating data based on the linear model with hyperplane custom direction.
         If parametr a is None, then it will be random.
@@ -143,7 +143,8 @@ class LinearGenerator:
             featNum: the number of features
             halfSize: half edge size of hypercube
             sigma: exponent parameter
-            a: custom direction vector by hyperplane
+            vectorA: custom direction vector by hyperplane
+            offset: displacement of hyperplane along direction vector from origin
         Return
             LinearSample.X: object-feature matrix
             LinearSample.Y: class of an object in object-feature matrix
@@ -174,5 +175,8 @@ class LinearGenerator:
 
         # turning to an orthonormal basis
         rotationX = np.dot(baseSample.X, H)
+
+        if (offset is not None):
+            rotationX = rotationX + offset * vectorA
 
         return LinearSample(rotationX, baseSample.Y), vectorA
