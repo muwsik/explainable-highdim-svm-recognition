@@ -4,32 +4,32 @@ import os
 
 # Organization of sample data storage
 class LinearSample:
-    def __init__(self, _X = None, _Y = None):
+    def __init__(self, _X = None, _Y = None, _params = None):
         self.X = _X
         self.Y = _Y
+        self.params = _params
 
 
-    @staticmethod
-    def __check(X, Y):
-        if X is None or Y is None:
+    def check(self):
+        if self.X is None or self.Y is None:
             raise ValueError("No data")
 
-        if X.ndim != 2:
+        if self.X.ndim != 2:
             raise ValueError("X must be 2D")
 
-        if Y.ndim != 1:
+        if self.Y.ndim != 1:
             raise ValueError("Y must be 1D")
 
-        if X.shape[0] != Y.shape[0]:
+        if self.X.shape[0] != self.Y.shape[0]:
             raise ValueError("X and Y size mismatch")
 
-        u = np.unique(Y)
+        u = np.unique(self.Y)
         if not np.all(np.isin(u, [-1, 1])):
             raise ValueError(f"Unexpected classes: {u}")
 
 
     def saveTXT(self, filename, append = True, delim = ' '):
-        LinearSample.__check(self.X, self.Y)
+        self.check()
 
         data = np.column_stack((self.Y, self.X))
 
@@ -46,17 +46,21 @@ class LinearSample:
         self.Y = data[:, 0].astype(np.int8)
         self.X = data[:, 1:]
 
-        LinearSample.__check(self.X, self.Y)
+        self.check()
 
 
-    def saveBin(self, filename, append = True):
-        LinearSample.__check(self.X, self.Y)
+    def saveBin(self, filename):
+        self.check()
 
-        np.savez_compressed(filename, X = self.X, Y = self.Y)
+        np.savez_compressed(filename,
+            X = self.X,
+            Y = self.Y,
+            params = self.params
+        )
 
 
     def loadBin(self, filename):
-        data = np.load(filename)
+        data = np.load(filename, allow_pickle = True)
 
         if "X" not in data or "Y" not in data:
             raise ValueError("Invalid file")
@@ -64,7 +68,12 @@ class LinearSample:
         self.X = data["X"]
         self.Y = data["Y"]
         
-        LinearSample.__check(self.X, self.Y)
+        if "params" in data:
+            self.params = data["params"].item()
+        else:
+            self.params = {}
+
+        self.check()
 
 
 
@@ -73,6 +82,7 @@ class LinearGenerator:
     def __init__(self, seed = None):
         if seed is not None:
             np.random.seed(seed)    
+
 
     # generating a truncated exponential distribution
     @staticmethod
@@ -84,9 +94,10 @@ class LinearGenerator:
             ) / sigma
         ).astype(np.float32)
 
+
     def base(self, objNum, featNum, halfSize, sigma): 
         """
-        Generating data based on the linear model with direction vector a = [1,0,0,0,...,0]
+        Generating data based on the linear model with direction vector *a* = [1,0,0,0,...,0]
             objNum: objects number of same class
             featNum: the number of features
             halfSize: half edge size of hypercube
@@ -94,6 +105,7 @@ class LinearGenerator:
         Return 
             LinearSample.X: object-feature matrix
             LinearSample.Y: class of an object in object-feature matrix
+            LinearSample.params: generation parameters
         """  
         
         # objects number of same class for exponential distribution
@@ -133,36 +145,48 @@ class LinearGenerator:
         X = np.column_stack([firstFeature, otherFeatures])
         Y = np.concatenate([np.ones(objNum, dtype = np.int8), -1 * np.ones(objNum, dtype = np.int8)])
 
-        return LinearSample(X, Y)
+        return LinearSample(
+            X,
+            Y,
+            {
+                "objNum": objNum,
+                "halfSize": halfSize,
+                "featNum": featNum,
+                "sigma": sigma,
+                "a": np.concatenate([[1], np.zeros(featNum - 1)]),
+                "b": 0
+             }
+        )
 
-    def specifiedHyperplane(self, objNum, featNum, halfSize, sigma, vectorA = None, offset = None): 
+
+    def specifiedHyperplane(self, objNum, featNum, halfSize, sigma, a = None, b = None): 
         """
         Generating data based on the linear model with hyperplane custom direction.
-        If parametr a is None, then it will be random.
+        If parametr *a* is None, then it will be random.
             objNum: objects number of same class
             featNum: the number of features
             halfSize: half edge size of hypercube
             sigma: exponent parameter
-            vectorA: custom direction vector by hyperplane
-            offset: displacement of hyperplane along direction vector from origin
+            a: custom direction vector by hyperplane
+            b: displacement of hyperplane along direction vector from origin
         Return
             LinearSample.X: object-feature matrix
             LinearSample.Y: class of an object in object-feature matrix
-            vectorA: normalized directing vector of hyperplane
+            a: normalized directing vector of hyperplane
         """
 
-        if (vectorA is None):
-            vectorA = np.random.normal(size = featNum, dtype = np.float32)
+        if (a is None):
+            a = np.random.normal(size = featNum).astype(np.float32)  
 
-        vectorA = np.array(vectorA, dtype = np.float32)
-        if len(vectorA) != featNum:
+        a = np.array(a, dtype = np.float32)
+        if len(a) != featNum:
             raise ValueError("len(a) must be featNum")   
 
         # construct an orthonormal basis by Householder  
-        vectorA = vectorA / np.linalg.norm(vectorA)
+        a = a / np.linalg.norm(a)
         e1 = np.zeros(featNum, dtype = np.float32)
         e1[0] = 1.0 # because we will use the sample with a = [1,0,0,0,...,0]
-        v = e1 - vectorA
+        v = e1 - a
         normV = np.linalg.norm(v)
         
         H = np.eye(featNum, dtype = np.float32)
@@ -176,7 +200,18 @@ class LinearGenerator:
         # turning to an orthonormal basis
         rotationX = np.dot(baseSample.X, H)
 
-        if (offset is not None):
-            rotationX = rotationX + offset * vectorA
+        if (b is not None):
+            rotationX = rotationX + b * a
 
-        return LinearSample(rotationX, baseSample.Y), vectorA
+        return LinearSample(
+            rotationX,
+            baseSample.Y,
+            {
+                "objNum": objNum,
+                "halfSize": halfSize,
+                "featNum": featNum,
+                "sigma": sigma,
+                "a": a,
+                "b": b
+             }
+        )
