@@ -1,4 +1,3 @@
-from tkinter import OFF
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -114,36 +113,36 @@ tempSeed = None
 
 if __name__ == "__main__":
     
-    # # 2D generation and visualization
-    # generateParams2D = {
-    #     "objNum": 100,
-    #     "halfSize": 10,
-    #     "featNum": 2,
-    #     "sigma": 1,
-    #     "a": [1, 5],
-    #     "b": 2
-    # }
+    # 2D generation and visualization
+    generateParams2D = {
+        "objNum": 100,
+        "halfSize": 10,
+        "featNum": 2,
+        "sigma": 1,
+        "a": [1, 5],
+        "b": 2
+    }
 
-    # linGenerator = gen.LinearGenerator(tempSeed)
-    # baseLinearSample = linGenerator.base(
-    #     generateParams2D["objNum"],
-    #     generateParams2D["featNum"],
-    #     generateParams2D["halfSize"],
-    #     generateParams2D["sigma"]        
-    # )   
+    linGenerator = gen.LinearGenerator(tempSeed)
+    baseLinearSample = linGenerator.base(
+        generateParams2D["objNum"],
+        generateParams2D["featNum"],
+        generateParams2D["halfSize"],
+        generateParams2D["sigma"]        
+    )   
 
-    # customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-    #     generateParams2D["objNum"],
-    #     generateParams2D["featNum"],
-    #     generateParams2D["halfSize"],
-    #     generateParams2D["sigma"],
-    #     generateParams2D["a"],
-    #     generateParams2D["b"]        
-    # )
+    customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+        generateParams2D["objNum"],
+        generateParams2D["featNum"],
+        generateParams2D["halfSize"],
+        generateParams2D["sigma"],
+        generateParams2D["a"],
+        generateParams2D["b"]        
+    )
 
-    # plot2D(baseLinearSample)
-    # plot2D(customLinearSample)
-    # plt.show()
+    plot2D(baseLinearSample)
+    plot2D(customLinearSample)
+    plt.show()
 
     # # 3D generation and visualization
     # generateParams3D = {
