@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import generator as gen
+import linGenerator as gen
 
 # 2D visualization
 def plot2D(tempLinearSample):
