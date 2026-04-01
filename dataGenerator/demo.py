@@ -1,3 +1,4 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -111,119 +112,116 @@ def plot3D(tempLinearSample):
 # DEMO
 tempSeed = None
 
-if __name__ == "__main__":
+#%% 2D generation and visualization
+generateParams2D = {
+    "objNum": 100,
+    "halfSize": 10,
+    "featNum": 2,
+    "sigma": 1,
+    "a": [1, 5],
+    "b": 2
+}
+
+linGenerator = gen.LinearGenerator(tempSeed)
+baseLinearSample = linGenerator.base(
+    generateParams2D["objNum"],
+    generateParams2D["featNum"],
+    generateParams2D["halfSize"],
+    generateParams2D["sigma"]        
+)   
+
+customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    generateParams2D["objNum"],
+    generateParams2D["featNum"],
+    generateParams2D["halfSize"],
+    generateParams2D["sigma"],
+    generateParams2D["a"],
+    generateParams2D["b"]        
+)
+
+plot2D(baseLinearSample)
+plot2D(customLinearSample)
+plt.show()
+
+#%% 3D generation and visualization
+generateParams3D = {
+    "objNum": 100,
+    "halfSize": 10,
+    "featNum": 3,
+    "sigma": 1,
+    "a": [1, 0, 0],
+    "b": -2
+}
+
+linGenerator = gen.LinearGenerator(tempSeed)
+baseLinearSample = linGenerator.base(
+    generateParams3D["objNum"],
+    generateParams3D["featNum"],
+    generateParams3D["halfSize"],
+    generateParams3D["sigma"]        
+)   
+
+customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    generateParams3D["objNum"],
+    generateParams3D["featNum"],
+    generateParams3D["halfSize"],
+    generateParams3D["sigma"],
+    generateParams3D["a"],
+    generateParams3D["b"]        
+)
+
+plot3D(baseLinearSample)
+plot3D(customLinearSample)
+plt.show()
+
+
+#%% TXT save and load without generate parametrs
+generateParams = {
+    "objNum": 10000,
+    "halfSize": 100,
+    "featNum": 100,
+    "sigma": 1,
+    "a": None,  # random
+    "b": -2
+} 
+
+customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    generateParams["objNum"],
+    generateParams["featNum"],
+    generateParams["halfSize"],
+    generateParams["sigma"],
+    generateParams["a"],
+    generateParams["b"]        
+) 
+
+customLinearSample.saveTXT(r'D:\customLinearSample.txt')
+
+sampleFromFile = gen.Sample()
+sampleFromFile.loadTXT(r'D:\customLinearSample.txt')
+
+#%% binary save and load with generate parametrs
+generateParams = {
+    "objNum": 11010,
+    "halfSize": 50,
+    "featNum": 101,
+    "sigma": 0.8,
+    "a": None,  # random
+    "b": -2.5
+} 
+
+customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    generateParams["objNum"],
+    generateParams["featNum"],
+    generateParams["halfSize"],
+    generateParams["sigma"],
+    generateParams["a"],
+    generateParams["b"]        
+)
+
+customLinearSample.saveBin(r'D:\customLinearSample.npz')
     
-    # 2D generation and visualization
-    generateParams2D = {
-        "objNum": 100,
-        "halfSize": 10,
-        "featNum": 2,
-        "sigma": 1,
-        "a": [1, 5],
-        "b": 2
-    }
+sampleFromFile = gen.Sample()
+sampleFromFile.loadBin(r'D:\customLinearSample.npz')    
 
-    linGenerator = gen.LinearGenerator(tempSeed)
-    baseLinearSample = linGenerator.base(
-        generateParams2D["objNum"],
-        generateParams2D["featNum"],
-        generateParams2D["halfSize"],
-        generateParams2D["sigma"]        
-    )   
-
-    customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-        generateParams2D["objNum"],
-        generateParams2D["featNum"],
-        generateParams2D["halfSize"],
-        generateParams2D["sigma"],
-        generateParams2D["a"],
-        generateParams2D["b"]        
-    )
-
-    plot2D(baseLinearSample)
-    plot2D(customLinearSample)
-    plt.show()
-
-    # # 3D generation and visualization
-    # generateParams3D = {
-    #     "objNum": 100,
-    #     "halfSize": 10,
-    #     "featNum": 3,
-    #     "sigma": 1,
-    #     "a": [1, 0, 0],
-    #     "b": -2
-    # }
-
-    # linGenerator = gen.LinearGenerator(tempSeed)
-    # baseLinearSample = linGenerator.base(
-    #     generateParams3D["objNum"],
-    #     generateParams3D["featNum"],
-    #     generateParams3D["halfSize"],
-    #     generateParams3D["sigma"]        
-    # )   
-
-    # customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-    #     generateParams3D["objNum"],
-    #     generateParams3D["featNum"],
-    #     generateParams3D["halfSize"],
-    #     generateParams3D["sigma"],
-    #     generateParams3D["a"],
-    #     generateParams3D["b"]        
-    # )
-    
-    # plot3D(baseLinearSample)
-    # plot3D(customLinearSample)
-    # plt.show()
-
-
-    # # TXT save and load without generate parametrs
-    # generateParams = {
-    #     "objNum": 10000,
-    #     "halfSize": 100,
-    #     "featNum": 100,
-    #     "sigma": 1,
-    #     "a": None,  # random
-    #     "b": -2
-    # } 
-
-    # customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-    #     generateParams["objNum"],
-    #     generateParams["featNum"],
-    #     generateParams["halfSize"],
-    #     generateParams["sigma"],
-    #     generateParams["a"],
-    #     generateParams["b"]        
-    # ) 
-
-    # customLinearSample.saveTXT(r'D:\customLinearSample.txt')
-    
-    # sampleFromFile = gen.LinearSample()
-    # sampleFromFile.loadTXT(r'D:\customLinearSample.txt')
-
-    # # binary save and load with generate parametrs
-    # generateParams = {
-    #     "objNum": 11010,
-    #     "halfSize": 50,
-    #     "featNum": 101,
-    #     "sigma": 0.8,
-    #     "a": None,  # random
-    #     "b": -2.5
-    # } 
-
-    # customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
-    #     generateParams["objNum"],
-    #     generateParams["featNum"],
-    #     generateParams["halfSize"],
-    #     generateParams["sigma"],
-    #     generateParams["a"],
-    #     generateParams["b"]        
-    # )
-
-    # customLinearSample.saveBin(r'D:\customLinearSample.npz')
-        
-    # sampleFromFile = gen.LinearSample()
-    # sampleFromFile.loadBin(r'D:\customLinearSample.npz')    
-    
-    # print(sampleFromFile.params) # generate parametrs
-
-    pass
+print(sampleFromFile.params) # generate parametrs
+# %%
