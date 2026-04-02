@@ -1,8 +1,10 @@
 import numpy as np
 import time
 
+from sklearn.svm import SVC
 
-class combModel:
+
+class combLinModel:
     def __init__(self, numIndex, numSplit, seed = None):
         if seed is None:            
             inds = np.random.permutation(numIndex)
@@ -10,10 +12,11 @@ class combModel:
             rng = np.random.default_rng(seed)
             inds = rng.permutation(numIndex)
 
-        self.subspaceIndex = np.array_split(inds, numSplit)    
+        self.subspaceIndex = np.array_split(inds, numSplit)
+        self.subspaceModels = None 
 
 
-    def fit(self, X, Y, baseModelCreater):
+    def fit(self, X, Y, baseModelCreater = lambda: SVC(kernel = 'linear')):
         self.subspaceModels = []
 
         # training by subspaces
@@ -35,15 +38,13 @@ class combModel:
         self.b /= len(self.subspaceIndex)
 
 
-    def predict(self, X):
+    def decision_function(self, X):
         inds = np.concatenate(self.subspaceIndex)
-
         scores = np.dot(X[:, inds], self.a) + self.b
+        return scores
 
+
+    def predict(self, X):
+        scores = self.decision_function(X)
         labels = np.where(scores >= 0, 1, -1)
-
-        return scores, labels
-
-
-    def subspacePredict(self, X):
-        pass
+        return labels
