@@ -5,32 +5,35 @@ from sklearn.svm import SVC
 
 
 class combLinModel:
-    def __init__(self, numIndex, numSplit, seed = None):
-        if seed is None:            
-            inds = np.random.permutation(numIndex)
-        else:
-            rng = np.random.default_rng(seed)
-            inds = rng.permutation(numIndex)
+    def __init__(self, numSplits, baseModel = lambda: SVC(kernel = 'linear'), seed = None):
+        self.numSplits = numSplits
+        self.baseModel = baseModel
 
-        self.subspaceIndex = np.array_split(inds, numSplit)
-        self.subspaceModels = None 
+        self.generator = np.random.default_rng(seed)
+
+        self.subspaceIndex = None
+        self.subspaceModels = None         
+        self.a = np.array([])
+        self.b = 0
 
 
-    def fit(self, X, Y, baseModelCreater = lambda: SVC(kernel = 'linear')):
+    def fit(self, X, Y):
+        # slit fearutes on subspaces   
+        numIndex = X.shape[1]     
+        inds = self.generator.permutation(numIndex)
+        self.subspaceIndex = np.array_split(inds, self.numSplits)
         self.subspaceModels = []
 
         # training by subspaces
         for tempSubspace in self.subspaceIndex:
             timeStartTrain = time.time()
-            tempModel = baseModelCreater()
+            tempModel = self.baseModel()
             tempModel.fit(X[:, tempSubspace], Y)
             timeEndTrain = time.time()
 
             self.subspaceModels.append([tempModel, timeEndTrain - timeStartTrain])
 
         # combining general solution 
-        self.a = []
-        self.b = 0
         for tempModel, _ in self.subspaceModels:
             self.a = np.hstack((self.a, tempModel.coef_[0]))
             self.b += tempModel.intercept_
