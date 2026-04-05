@@ -1,4 +1,3 @@
-#%%
 import argparse
 import sys
 import os
@@ -8,6 +7,8 @@ import numpy as np
 import pandas as pd
 import time
 
+from sklearn.svm import SVC, LinearSVC
+from combinedModel import combLinModel
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     # 2.1 Full dataset load
     tempDataset = Sample()
     tempDataset.loadBin(args.input)
-    print(f"Parameters of dataset '{args.input}' generation: {tempDataset.params}")
+    print(f"Dataset '{args.input}' loded.\n\tParameters of dataset generation: {tempDataset.params}")
 
     # 2.2 Split full dataset on parts
     X_train, X_test, Y_train, Y_test = train_test_split(
@@ -72,23 +73,23 @@ if __name__ == "__main__":
 
     # 2.3 Model for experiment
     if args.model == "SVC":    
-        from sklearn.svm import SVC
         model = SVC(C = args.C, kernel = args.kernel)
     elif args.model == "LinearSVC":    
-        from sklearn.svm import LinearSVC
         model = LinearSVC(C = args.C, penalty = args.penalty, dual = False)
     elif args.model == "CombLinSVM":
-        from combinedModel import combLinModel
-        model = combLinModel(numSplits = args.splits, ) # TODO: using SVM params
+        model = combLinModel(numSplits = args.splits,
+            baseModel = lambda: SVC(C = args.C, kernel = 'linear')) # TODO: type model switch
     else:
         raise ValueError("Unknown model")
 
     # 2.4 Training
+    print(f"\tTraining model...")
     timeTrain = -time.time()
     model.fit(X_train, Y_train)
     timeTrain += time.time()
 
     # 2.5 Predicting
+    print(f"\tPredicting...")
     timePredict = -time.time()
     myLabels = model.predict(X_test)
     timePredict += time.time()
@@ -100,6 +101,9 @@ if __name__ == "__main__":
         "time(predict)": timePredict,
     }
 
+    # for parameters that can be equal to None
+    check = lambda x: x if x is not None else "---"
+
     params = {
         # general
         "train_size": args.train_size,
@@ -108,13 +112,13 @@ if __name__ == "__main__":
         "C": args.C,
 
         # SVC
-        "kernel": args.kernel,
+        "kernel": check(args.kernel),
         
         # LinearSVC
-        "penalty": args.penalty,
+        "penalty": check(args.penalty),
 
         # CombLinSVM
-        "splits": args.splits
+        "splits": check(args.splits)
 
     }
 
@@ -133,7 +137,7 @@ if __name__ == "__main__":
 
     paramCols = [
         c for c in df.columns
-            if c not in metricCols + ["id", "seed"]
+            if c not in metricCols + ['id', 'seed', 'dataset']
     ]
 
     grouped = df.groupby(paramCols)
@@ -149,4 +153,4 @@ if __name__ == "__main__":
         df.to_excel(writer, sheet_name = "runs", index = False)
         aggDF.to_excel(writer, sheet_name = "aggregated", index = False)
 
-    print('success!')
+    print(f"\tResults write in file '{os.path.basename(args.output)}'")
