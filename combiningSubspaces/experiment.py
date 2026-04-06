@@ -60,8 +60,7 @@ if __name__ == "__main__":
 
     # 2. Main experiment logic
     # 2.1 Full dataset load
-    tempDataset = Sample()
-    tempDataset.loadBin(args.input)
+    tempDataset = Sample.fromBin(args.input)
     print(f"Dataset '{args.input}' loded.\n\tParameters of dataset generation: {tempDataset.params}")
 #%%
     # 2.2 Split full dataset on parts

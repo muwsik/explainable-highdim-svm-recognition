@@ -10,21 +10,21 @@ output = rf"D:\Cloud\SVM\{os.path.basename(input)}.xlsx"
 
 print(f"---START---")
 
-# #  SVC
-# C = [0.1, 0.5, 1.0]
-# kernels = ["linear"]
+#  SVC
+C = [0.1]
+kernels = ["linear"]
 
-# for _C, _kernel in product(C, kernels):
-#     subprocess.run([
-#         "python", "./experiment.py",
-#         "--model", "SVC",
-#         "--kernel", _kernel, 
-#         "--C", str(_C), 
-#         "--train_size", str(5000),
-#         "--test_size", str(5000),      
-#         "--input", input,
-#         "--output", output
-#     ], cwd = "combiningSubspaces", check = True)
+for _C, _kernel in product(C, kernels):
+    subprocess.run([
+        "python", "./experiment.py",
+        "--model", "SVC",
+        "--kernel", _kernel, 
+        "--C", str(_C), 
+        "--train_size", str(5000),
+        "--test_size", str(5000),      
+        "--input", input,
+        "--output", output
+    ], cwd = "combiningSubspaces", check = True)
 
 
 # # LinearSVC
@@ -44,20 +44,20 @@ print(f"---START---")
 #     ], cwd = "combiningSubspaces", check = True)
 
 
-# CombLinSVM
-C = [0.1, 1.0]
-splits = [1, 5, 10]
+# # CombLinSVM
+# C = [0.1, 1.0]
+# splits = [1, 5, 10]
 
-for _C, _splits in product(C, splits):
-    subprocess.run([
-        "python", "./experiment.py",
-        "--model", "CombLinSVM",
-        "--splits", str(_splits), 
-        "--C", str(_C), 
-        "--train_size", str(5000),
-        "--test_size", str(5000),      
-        "--input", input,
-        "--output", output
-    ], cwd = "combiningSubspaces", check = True)
+# for _C, _splits in product(C, splits):
+#     subprocess.run([
+#         "python", "./experiment.py",
+#         "--model", "CombLinSVM",
+#         "--splits", str(_splits), 
+#         "--C", str(_C), 
+#         "--train_size", str(5000),
+#         "--test_size", str(5000),      
+#         "--input", input,
+#         "--output", output
+#     ], cwd = "combiningSubspaces", check = True)
 
 print(f"---END---")

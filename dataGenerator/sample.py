@@ -58,7 +58,6 @@ class Sample:
             params = self.params
         )
 
-
     def loadBin(self, filename):
         data = np.load(filename, allow_pickle = True)
 
@@ -74,3 +73,9 @@ class Sample:
             self.params = {}
 
         self.check()
+
+    @classmethod
+    def fromBin(cls, filemane):
+        obj = cls()
+        obj.loadBin(filemane)
+        return obj
