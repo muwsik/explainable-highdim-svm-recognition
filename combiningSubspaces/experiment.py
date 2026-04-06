@@ -1,3 +1,5 @@
+
+# %%
 import argparse
 import sys
 import os
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     tempDataset = Sample()
     tempDataset.loadBin(args.input)
     print(f"Dataset '{args.input}' loded.\n\tParameters of dataset generation: {tempDataset.params}")
-
+#%%
     # 2.2 Split full dataset on parts
     X_train, X_test, Y_train, Y_test = train_test_split(
         tempDataset.X,
