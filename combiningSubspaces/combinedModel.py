@@ -26,6 +26,7 @@ class combLinModel:
 
         # training by subspaces
         for tempSubspace in self.subspaceIndex:
+            print(tempSubspace[0])
             timeStartTrain = time.time()
             tempModel = self.baseModel()
             tempModel.fit(X[:, tempSubspace], Y)
@@ -36,7 +37,7 @@ class combLinModel:
         # combining general solution 
         for tempModel, _ in self.subspaceModels:
             self.a = np.hstack((self.a, tempModel.coef_[0]))
-            self.b += tempModel.intercept_
+            self.b += tempModel.intercept_[0]
 
         self.b /= len(self.subspaceIndex)
 

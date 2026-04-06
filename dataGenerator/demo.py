@@ -117,7 +117,7 @@ generateParams2D = {
     "objNum": 100,
     "halfSize": 10,
     "featNum": 2,
-    "sigma": 1,
+    "sigma": 0.8,
     "a": [1, 5],
     "b": 2
 }
@@ -199,14 +199,15 @@ customLinearSample.saveTXT(r'D:\customLinearSample.txt')
 sampleFromFile = gen.Sample()
 sampleFromFile.loadTXT(r'D:\customLinearSample.txt')
 
+
 #%% binary save and load with generate parametrs
 generateParams = {
-    "objNum": 11010,
+    "objNum": 10000,
     "halfSize": 50,
-    "featNum": 101,
+    "featNum": 5000,
     "sigma": 0.8,
     "a": None,  # random
-    "b": -2.5
+    "b": +10
 } 
 
 customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
@@ -218,10 +219,39 @@ customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
     generateParams["b"]        
 )
 
-customLinearSample.saveBin(r'D:\customLinearSample.npz')
+customLinearSample.saveBin(r'D:\ds-10k-5k-08-rnd-10.npz')
     
 sampleFromFile = gen.Sample()
-sampleFromFile.loadBin(r'D:\customLinearSample.npz')    
+sampleFromFile.loadBin(r'D:\ds-10k-5k-08-rnd-10.npz')    
 
 print(sampleFromFile.params) # generate parametrs
-# %%
+
+
+# %% generate train and test datasets for one *a*
+custon_a = np.random.uniform(low = 0, high = 1, size = 5000)
+
+trainDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    objNum = 10000,
+    featNum = 5000,
+    halfSize = 100,
+    sigma = 0.8,
+    a = custon_a,
+    b = -15        
+)
+trainDataset.saveBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
+
+testDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+    objNum = 5000,
+    featNum = 5000,
+    halfSize = 100,
+    sigma = 0.8,
+    a = custon_a,
+    b = -15        
+)
+testDataset.saveBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
+    
+trainDataset = gen.Sample.fromBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
+print(trainDataset.params)
+
+testDataset = gen.Sample.fromBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
+print(testDataset.params)

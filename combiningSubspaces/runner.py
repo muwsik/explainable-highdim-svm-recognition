@@ -2,62 +2,60 @@ import os
 import subprocess
 from itertools import product
 
-input = r"D:\Cloud\SVM\dg2_lin_100k_1k_b0_01_08.npz"
+trainFile = r"D:\datasets\ds-test-5k-5k-08-rnd-+15.npz"
+testFile = r"D:\datasets\ds-train-10k-5k-08-rnd-+15.npz"
 
-output = rf"D:\Cloud\SVM\{os.path.basename(input)}.xlsx"
+output = rf"D:\Cloud\SVM\{os.path.basename(trainFile)}__{os.path.basename(testFile)}.xlsx"
 
 # Iiterating through the parameters for specific methods
 
 print(f"---START---")
 
-#  SVC
-C = [0.1]
-kernels = ["linear"]
+# #  SVC
+# C = [1]
+# kernels = ["linear"]
 
-for _C, _kernel in product(C, kernels):
-    subprocess.run([
-        "python", "./experiment.py",
-        "--model", "SVC",
-        "--kernel", _kernel, 
-        "--C", str(_C), 
-        "--train_size", str(5000),
-        "--test_size", str(5000),      
-        "--input", input,
-        "--output", output
-    ], cwd = "combiningSubspaces", check = True)
+# for _C, _kernel in product(C, kernels):
+#     subprocess.run([
+#         "python", "./experiment.py",
+#         "--train", trainFile,
+#         "--test", testFile,
+#         "--C", str(_C),   
+#         "--model", "SVC",
+#         "--kernel", _kernel, 
+#         "--output", output
+#     ], cwd = "combiningSubspaces", check = True)
 
 
 # # LinearSVC
-# C = [0.1, 1.0]
-# penaltys = ['l1', 'l2']
+# C = [0.1]
+# penaltys = ['l1']
 
 # for _C, _penalty in product(C, penaltys):
 #     subprocess.run([
 #         "python", "./experiment.py",
+#         "--train", trainFile,
+#         "--test", testFile,
+#         "--C", str(_C),   
 #         "--model", "LinearSVC",
-#         "--penalty", _penalty, 
-#         "--C", str(_C), 
-#         "--train_size", str(5000),
-#         "--test_size", str(5000),      
-#         "--input", input,
+#         "--penalty", _penalty,          
 #         "--output", output
 #     ], cwd = "combiningSubspaces", check = True)
 
 
-# # CombLinSVM
-# C = [0.1, 1.0]
-# splits = [1, 5, 10]
+# CombLinSVM
+C = [1]
+splits = [2]
 
-# for _C, _splits in product(C, splits):
-#     subprocess.run([
-#         "python", "./experiment.py",
-#         "--model", "CombLinSVM",
-#         "--splits", str(_splits), 
-#         "--C", str(_C), 
-#         "--train_size", str(5000),
-#         "--test_size", str(5000),      
-#         "--input", input,
-#         "--output", output
-#     ], cwd = "combiningSubspaces", check = True)
+for _C, _splits in product(C, splits):
+    subprocess.run([
+        "python", "./experiment.py",
+        "--train", trainFile,
+        "--test", testFile,
+        "--C", str(_C),   
+        "--model", "CombLinSVM",
+        "--splits", str(_splits), 
+        "--output", output
+    ], cwd = "combiningSubspaces", check = True)
 
 print(f"---END---")
