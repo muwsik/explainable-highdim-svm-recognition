@@ -29,7 +29,7 @@ for _C, _kernel in product(C, kernels):
 
 # CombLinSVM
 C = [0.1, 1, 10]
-splits = [1, 10, 50]
+splits = [1, 2, 5, 10]
 
 for _C, _splits in product(C, splits):
     subprocess.run([

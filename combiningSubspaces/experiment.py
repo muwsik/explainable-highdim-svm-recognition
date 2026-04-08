@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import numpy as np
 import pandas as pd
 import time
 
@@ -38,7 +39,7 @@ if __name__ == "__main__":
 
     # 1.3 SVC model parameters
     parser.add_argument("--kernel", type = str, default = None,
-        choices = ["linear", "rbf"],
+        choices = ["linear"],
         help = "Kernel type (for SVC)")
 
     # 1.4 LinearSVC model parameters
@@ -101,6 +102,11 @@ if __name__ == "__main__":
         model = SVC(C = args.C, kernel = args.kernel, verbose = _verbose)
     elif args.model == "LinearSVC":    
         model = LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = _verbose)
+        # generator = np.random.default_rng(41)
+        # numIndex = trainDataset.X.shape[1]     
+        # inds = generator.permutation(numIndex)        
+        # trainDataset.X = trainDataset.X[:, inds]        
+        # testDataset.X = testDataset.X[:, inds]
     elif args.model == "CombLinSVM-LSVC":
         model = combLinModel(numSplits = args.splits,
             baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose))
