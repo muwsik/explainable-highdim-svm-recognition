@@ -1,0 +1,27 @@
+{
+    // Используйте IntelliSense, чтобы узнать о возможных атрибутах.
+    // Наведите указатель мыши, чтобы просмотреть описания существующих атрибутов.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug current file",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}"
+        },
+        {
+            "name": "Debug experiment.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/combiningSubspaces/experiment.py",
+            "args": [
+                "--train", "D:\\datasets\\ds-test-5k-5k-08-rnd-+15.npz",
+                "--test", "D:\\datasets\\ds-train-10k-5k-08-rnd-+15.npz",
+                "--C", "1",
+                "--model", "CombLinSVM",
+                "--splits", "2",
+                "--output", "D:\\Cloud\\SVM\\ds-test-5k-5k-08-rnd-+15.npz__ds-train-10k-5k-08-rnd-+15.npz.xlsx"
+            ]
+        }
+    ]
+}

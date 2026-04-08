@@ -249,7 +249,7 @@ testDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
     b = -15        
 )
 testDataset.saveBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
-    dgdfgdf
+    
 trainDataset = gen.Sample.fromBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
 print(trainDataset.params)
 

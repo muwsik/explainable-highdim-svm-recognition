@@ -3,13 +3,11 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import numpy as np
 import pandas as pd
 import time
 
 from sklearn.svm import SVC, LinearSVC
 from combinedModel import combLinModel
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
