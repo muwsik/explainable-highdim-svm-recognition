@@ -6,26 +6,19 @@ from sample import Sample
 def generateSample(
     nSamples,          # number of objects of both classes
     nFeatures,         # total number of features
-    nInformative,      # informative features
+    #nInformative,      # informative features
     a = None,          # direction vector of separating hyperplane
     b = 0.0,           # offset along the direction vector
     scale = 1.0,
     seed = None
 ):
-    if (nInformative > nFeatures):
-        raise  ValueError("!")
-
     rng = np.random.default_rng(seed)
 
     # 
-    X = rng.standard_normal((nSamples, nInformative)) * scale
+    X = rng.standard_normal((nSamples, nFeatures)) * scale
 
-    # 
-    if a is None:
-        a = np.zeros(nFeatures)
-        temp = rng.standard_normal(nInformative)
-        temp /= np.linalg.norm(temp)
-        a[:nInformative] = temp
+    #
+    a /= np.linalg.norm(a)
 
     # 
     scores = np.dot(X, a) - b
@@ -41,7 +34,7 @@ def generateSample(
         {
             "nSamples": nSamples,
             "nFeatures": nFeatures,
-            "nInformative": nInformative,
+            #"nInformative": nInformative,
             "a": a,
             "b": b,
             "scale": scale,

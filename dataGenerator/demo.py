@@ -151,30 +151,29 @@ def plot3D(tempLinearSample):
 
     
 #%% 
-temp = gg.generateSample(
-    nSamples = 100,
-    nFeatures = 2,
-    nInformative = 2,
-    a = [1, 1],
-    b = 2,
-    scale = 5,
-    seed = 41
+
+temp_a = np.random.uniform(low = 0, high = 1, size = 1000)
+
+trainDataset = gg.generateSample(
+    nSamples = 5000,
+    nFeatures = 1000,
+    #nInformative = 1000,
+    a = temp_a,
+    b = 0,
+    scale = 1
 )
+trainDataset.saveBin(r"D:\datasets\train-5k-1k.npz")
 
-plot2D(temp).show()
-
-#%% 
-temp = gg.generateSample(
-    nSamples = 100,
-    nFeatures = 3,
-    nInformative = 3,
-    a = [0.5, 1, 0.5],
-    b = 1,
-    scale = 1,
-    seed = 42
+testDataset = gg.generateSample(
+    nSamples = 5000,
+    nFeatures = 1000,
+    #nInformative = 1000,
+    a = temp_a,
+    b = 0,
+    scale = 1
 )
+testDataset.saveBin(r"D:\datasets\test-5k-1k.npz")
 
-plot3D(temp).show()
 
 
 #%% 2D generation and visualization
@@ -301,7 +300,7 @@ trainDataset = lg.LinearGenerator().specifiedHyperplane(
     a = custon_a,
     b = -15        
 )
-trainDataset.saveBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
+#trainDataset.saveBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
 
 testDataset = lg.LinearGenerator().specifiedHyperplane(
     objNum = 5000,
@@ -311,7 +310,7 @@ testDataset = lg.LinearGenerator().specifiedHyperplane(
     a = custon_a,
     b = -15        
 )
-testDataset.saveBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
+#testDataset.saveBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
     
 trainDataset = lg.Sample.fromBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
 print(trainDataset.params)

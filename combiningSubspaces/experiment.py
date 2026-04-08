@@ -5,10 +5,10 @@ import pandas as pd
 import time
 
 from sklearn.svm import SVC, LinearSVC
-from combinedModel import combLinModel
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
+from combiningSubspaces.combinedModel import combLinModel
 from dataGenerator.sample import Sample
 
 # run one experiment
@@ -75,18 +75,22 @@ if __name__ == "__main__":
     # 2. Main experiment logic
     # 2.1 Train dataset load
     trainDataset = Sample.fromBin(args.train)
-    print(f"Train dataset '{args.train}' loded.\n\tParameters of dataset generation: {trainDataset.params}")
+    print(f"Loded train dataset '{args.train}'.")
+    #print(f"Parameters of dataset generation: {trainDataset.params}")
     
     # standardization 
     scaler = StandardScaler()
     trainDataset.X = scaler.fit_transform(trainDataset.X)
+    print(f"Train dataset is standardized.")
 
     # 2.2 Test dataset load
     testDataset = Sample.fromBin(args.test)
-    print(f"Test dataset '{args.test}' loded.\n\tParameters of dataset generation: {testDataset.params}")
+    print(f"Test dataset '{args.test}' loded.")
+    #print(f"Parameters of dataset generation: {testDataset.params}")
 
     # standardization 
     testDataset.X = scaler.transform(testDataset.X)
+    print(f"Test dataset is standardized.")
 
     # 2.3 Model for experiment
     if args.model == "SVC":    
@@ -95,8 +99,7 @@ if __name__ == "__main__":
         model = LinearSVC(C = args.C, penalty = args.penalty, dual = False)
     elif args.model == "CombLinSVM":
         model = combLinModel(numSplits = args.splits,
-            baseModel = lambda: SVC(C = args.C, kernel = 'linear', verbose = True)) # TODO: type base model switcher
-    else:
+            baseModel = lambda: LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = True))
         raise ValueError("Unknown model")
 
     # 2.4 Training
