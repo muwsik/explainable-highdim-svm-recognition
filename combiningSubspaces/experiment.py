@@ -9,7 +9,7 @@ from combinedModel import combLinModel
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
-
+from dataGenerator.sample import Sample
 
 # run one experiment
 if __name__ == "__main__":

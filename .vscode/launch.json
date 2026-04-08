@@ -7,13 +7,20 @@
             "name": "Debug current file",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}"
+            "program": "${file}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
         },
         {
             "name": "Debug experiment.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/combiningSubspaces/experiment.py",
+            "program": "combiningSubspaces/experiment.py",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
             "args": [
                 "--train", "D:\\datasets\\ds-test-5k-5k-08-rnd-+15.npz",
                 "--test", "D:\\datasets\\ds-train-10k-5k-08-rnd-+15.npz",
