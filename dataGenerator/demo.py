@@ -1,116 +1,181 @@
 #%%
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
-import linGenerator as gen
+import linGenerator as lg
+import gaussGenerator as gg
 
 # 2D visualization
 def plot2D(tempLinearSample):
-    a = tempLinearSample.params["a"]
+    a = np.array(tempLinearSample.params["a"], dtype=float)
     b = tempLinearSample.params["b"]
 
-    pos = tempLinearSample.X[tempLinearSample.Y ==  1]
+    pos = tempLinearSample.X[tempLinearSample.Y == 1]
     neg = tempLinearSample.X[tempLinearSample.Y == -1]
 
-    plt.figure(figsize = (6, 6))
-
-    plt.scatter(pos[:, 0], pos[:, 1], c = "blue", label = "+1", alpha = 0.6)
-    plt.scatter(neg[:, 0], neg[:, 1], c = "red", label = "-1", alpha = 0.6)
-
-    # separating rule
-    a = np.array(a, dtype = float)
     xmin, xmax = np.min(tempLinearSample.X[:, 0]), np.max(tempLinearSample.X[:, 0])
     ymin, ymax = np.min(tempLinearSample.X[:, 1]), np.max(tempLinearSample.X[:, 1])
+
+    fig = go.Figure()
+
+    # 
+    fig.add_trace(go.Scatter(
+        x = pos[:, 0], y = pos[:, 1],
+        mode = 'markers',
+        name = '+1',
+        marker = dict(color = 'blue'),
+        opacity = 0.6
+    ))
+
+    fig.add_trace(go.Scatter(
+        x = neg[:, 0], y = neg[:, 1],
+        mode = 'markers',
+        name = '-1',
+        marker = dict(color='red'),
+        opacity = 0.6
+    ))
+
     if abs(a[1]) >= 1e-6:
         xLine = np.linspace(xmin, xmax, 2)
-        yLine = -(a[0] * xLine - b)/ a[1]
+        yLine = -(a[0] * xLine - b) / a[1]
 
-        plt.plot(xLine, yLine, "k-", label = "rule")
-        plt.plot(xLine - 1, yLine - 1, "k--", label = "border")
-        plt.plot(xLine + 1, yLine + 1, "k--")
+        fig.add_trace(go.Scatter(
+            x = xLine, y = yLine,
+            mode = 'lines',
+            name = 'rule',
+            line = dict(color = 'black')
+        ))
     else:
-        x0 = b / a[0]
-        plt.axvline(x0, color = "black", linestyle = "-", label = "rule")
-        plt.axvline(x0 + 1 / a[0], color = "black", linestyle = "--", label = "margin")
-        plt.axvline(x0 - 1 / a[0], color = "black", linestyle = "--")
+        fig.add_vline(x = b / a[0], line=dict(color = 'black'), name = 'rule')
 
-    plt.xlim(xmin - 1, xmax + 1)
-    plt.ylim(ymin - 1, ymax + 1)   
+    fig.update_layout(
+        title = f"a = {a}, b = {b}",
+        xaxis_title = "feature_1",
+        yaxis_title = "feature_2"
+    )
 
-    plt.title(f"a = {a}, b = {b}")
-    plt.xlabel("x1")
-    plt.ylabel("x2")
-    plt.legend()
+    fig.update_xaxes(range = [xmin - 1, xmax + 1])
+    fig.update_yaxes(range = [ymin - 1, ymax + 1])
+
+    return fig
 
 
 # 3D visualization
-def drawPlane(a, c, xmin, xmax, ymin, ymax, zmin, zmax, alpha, color):    
+def drawPlane(a, c, xLim, yLim, zLim):
     if abs(a[0]) >= 1e-6:
         Y, Z = np.meshgrid(
-            np.linspace(ymin, ymax, 10),
-            np.linspace(zmin, zmax, 10)
+            np.linspace(yLim[0], yLim[1], 5),
+            np.linspace(zLim[0], zLim[1], 5)
         )
         X = (c - a[1]*Y - a[2]*Z) / a[0]
 
     elif abs(a[1]) >= 1e-6:
         X, Z = np.meshgrid(
-            np.linspace(xmin, xmax, 10),
-            np.linspace(zmin, zmax, 10)
+            np.linspace(xLim[0], xLim[1], 5),
+            np.linspace(zLim[0], zLim[1], 5)
         )
         Y = (c - a[0]*X - a[2]*Z) / a[1]
 
     else:
         X, Y = np.meshgrid(
-            np.linspace(xmin, xmax, 10),
-            np.linspace(ymin, ymax, 10)
+            np.linspace(xLim[0], xLim[1], 5),
+            np.linspace(yLim[0], yLim[1], 5)
         )
         Z = (c - a[0]*X - a[1]*Y) / a[2]
 
-    plt.gca().plot_surface(
-        X, Y, Z,
-        alpha = alpha,
-        color = color
-    )
+    return X, Y, Z
 
 def plot3D(tempLinearSample):
-    a = tempLinearSample.params["a"]
+    a = np.array(tempLinearSample.params["a"], dtype = float)
     b = tempLinearSample.params["b"]
 
-    pos = tempLinearSample.X[tempLinearSample.Y ==  1]
+    pos = tempLinearSample.X[tempLinearSample.Y == 1]
     neg = tempLinearSample.X[tempLinearSample.Y == -1]
 
-    fig = plt.figure(figsize = (7, 7))
-    ax = fig.add_subplot(111, projection = "3d")
+    xLim = [np.min(tempLinearSample.X[:, 0]), np.max(tempLinearSample.X[:, 0])]
+    yLim = [np.min(tempLinearSample.X[:, 1]), np.max(tempLinearSample.X[:, 1])]
+    zLim = [np.min(tempLinearSample.X[:, 2]), np.max(tempLinearSample.X[:, 2])]
 
-    ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2],
-               c = "blue", label = "+1", alpha = 0.6)
+    fig = go.Figure()
 
-    ax.scatter(neg[:, 0], neg[:, 1], neg[:, 2],
-               c = "red", label = "-1", alpha = 0.6)
+    # точки
+    fig.add_trace(go.Scatter3d(
+        x = pos[:, 0], y = pos[:, 1], z = pos[:, 2],
+        mode = 'markers',
+        name = '+1',
+        marker = dict(color = 'blue', size = 3),
+        opacity = 0.6
+    ))
 
-    # separating rule
-    a = np.array(a, dtype = float)
-    xmin, xmax = np.min(tempLinearSample.X[:, 0]), np.max(tempLinearSample.X[:, 0])
-    ymin, ymax = np.min(tempLinearSample.X[:, 1]), np.max(tempLinearSample.X[:, 1])
-    zmin, zmax = np.min(tempLinearSample.X[:, 2]), np.max(tempLinearSample.X[:, 2])
+    fig.add_trace(go.Scatter3d(
+        x = neg[:, 0], y = neg[:, 1], z = neg[:, 2],
+        mode = 'markers',
+        name = '-1',
+        marker = dict(color = 'red', size = 3),
+        opacity = 0.6
+    ))
+
+    # плоскость
+    X, Y, Z = drawPlane(a, b, xLim, yLim, zLim)
+
+    fig.add_trace(go.Surface(
+        x = X,
+        y = Y,
+        z = Z,
+        opacity = 0.3,
+        showscale = False,
+        hoverinfo = 'skip'
+    ))
+
+    fig.update_layout(
+        scene = dict(
+            xaxis = dict(
+                title = 'feature_1',
+                range = [xLim[0] - 1, xLim[1] + 1],
+                showspikes = False
+            ),
+            yaxis = dict(
+                title = 'feature_2',
+                range = [yLim[0] - 1, yLim[1] + 1],
+                showspikes = False
+            ),
+            zaxis = dict(
+                title = 'feature_3',
+                range = [zLim[0] - 1, zLim[1] + 1],
+                showspikes = False
+            ),
+        )
+    )
+
+    return fig
+
     
-    drawPlane(a, b, xmin, xmax, ymin, ymax, zmin, zmax, 0.3, "green")
-    # drawPlane(vectorA, -1 + offset, xmin, xmax, ymin, ymax, zmin, zmax, 0.1, "gray")
-    # drawPlane(vectorA, +1 + offset, xmin, xmax, ymin, ymax, zmin, zmax, 0.1, "gray")
+#%% 
+temp = gg.generateSample(
+    nSamples = 100,
+    nFeatures = 2,
+    nInformative = 2,
+    a = [1, 1],
+    b = 2,
+    scale = 5,
+    seed = 41
+)
 
-    ax.set_xlim(xmin - 1, xmax + 1)
-    ax.set_ylim(ymin - 1, ymax + 1)
-    ax.set_zlim(zmin - 1, zmax + 1)
-    
-    plt.title(f"a = {a}, b = {b}")
-    ax.set_xlabel("x1")
-    ax.set_ylabel("x2")
-    ax.set_zlabel("x3")
-    ax.legend()
+plot2D(temp).show()
 
-    
-# DEMO
-tempSeed = None
+#%% 
+temp = gg.generateSample(
+    nSamples = 100,
+    nFeatures = 3,
+    nInformative = 3,
+    a = [0.5, 1, 0.5],
+    b = 1,
+    scale = 1,
+    seed = 42
+)
+
+plot3D(temp).show()
+
 
 #%% 2D generation and visualization
 generateParams2D = {
@@ -122,7 +187,7 @@ generateParams2D = {
     "b": 2
 }
 
-linGenerator = gen.LinearGenerator(tempSeed)
+linGenerator = lg.LinearGenerator()
 baseLinearSample = linGenerator.base(
     generateParams2D["objNum"],
     generateParams2D["featNum"],
@@ -130,7 +195,7 @@ baseLinearSample = linGenerator.base(
     generateParams2D["sigma"]        
 )   
 
-customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+customLinearSample = lg.LinearGenerator().specifiedHyperplane(
     generateParams2D["objNum"],
     generateParams2D["featNum"],
     generateParams2D["halfSize"],
@@ -139,21 +204,20 @@ customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
     generateParams2D["b"]        
 )
 
-plot2D(baseLinearSample)
-plot2D(customLinearSample)
-plt.show()
+plot2D(baseLinearSample).show()
+plot2D(customLinearSample).show()
 
 #%% 3D generation and visualization
 generateParams3D = {
-    "objNum": 10000,
+    "objNum": 100,
     "halfSize": 10,
     "featNum": 3,
     "sigma": 1,
-    "a": [1, 0, 0],
+    "a": [1, 1, 1],
     "b": -2
 }
 
-linGenerator = gen.LinearGenerator(tempSeed)
+linGenerator = lg.LinearGenerator()
 baseLinearSample = linGenerator.base(
     generateParams3D["objNum"],
     generateParams3D["featNum"],
@@ -161,7 +225,7 @@ baseLinearSample = linGenerator.base(
     generateParams3D["sigma"]        
 )   
 
-customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+customLinearSample = lg.LinearGenerator().specifiedHyperplane(
     generateParams3D["objNum"],
     generateParams3D["featNum"],
     generateParams3D["halfSize"],
@@ -170,14 +234,13 @@ customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
     generateParams3D["b"]        
 )
 
-plot3D(baseLinearSample)
-plot3D(customLinearSample)
-plt.show()
+plot3D(baseLinearSample).show()
+plot3D(customLinearSample).show()
 
 
 #%% TXT save and load without generate parametrs
 generateParams = {
-    "objNum": 10000,
+    "objNum": 100,
     "halfSize": 100,
     "featNum": 100,
     "sigma": 1,
@@ -185,7 +248,7 @@ generateParams = {
     "b": -2
 } 
 
-customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+customLinearSample = lg.LinearGenerator().specifiedHyperplane(
     generateParams["objNum"],
     generateParams["featNum"],
     generateParams["halfSize"],
@@ -196,7 +259,7 @@ customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
 
 customLinearSample.saveTXT(r'D:\customLinearSample.txt')
 
-sampleFromFile = gen.Sample()
+sampleFromFile = lg.Sample()
 sampleFromFile.loadTXT(r'D:\customLinearSample.txt')
 
 
@@ -210,7 +273,7 @@ generateParams = {
     "b": +10
 } 
 
-customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+customLinearSample = lg.LinearGenerator().specifiedHyperplane(
     generateParams["objNum"],
     generateParams["featNum"],
     generateParams["halfSize"],
@@ -221,7 +284,7 @@ customLinearSample = gen.LinearGenerator(tempSeed).specifiedHyperplane(
 
 customLinearSample.saveBin(r'D:\ds-10k-5k-08-rnd-10.npz')
     
-sampleFromFile = gen.Sample()
+sampleFromFile = lg.Sample()
 sampleFromFile.loadBin(r'D:\ds-10k-5k-08-rnd-10.npz')    
 
 print(sampleFromFile.params) # generate parametrs
@@ -230,7 +293,7 @@ print(sampleFromFile.params) # generate parametrs
 # %% generate train and test datasets for one *a*
 custon_a = np.random.uniform(low = 0, high = 1, size = 5000)
 
-trainDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+trainDataset = lg.LinearGenerator().specifiedHyperplane(
     objNum = 10000,
     featNum = 5000,
     halfSize = 100,
@@ -240,7 +303,7 @@ trainDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
 )
 trainDataset.saveBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
 
-testDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
+testDataset = lg.LinearGenerator().specifiedHyperplane(
     objNum = 5000,
     featNum = 5000,
     halfSize = 100,
@@ -250,8 +313,8 @@ testDataset = gen.LinearGenerator(tempSeed).specifiedHyperplane(
 )
 testDataset.saveBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
     
-trainDataset = gen.Sample.fromBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
+trainDataset = lg.Sample.fromBin(r"D:\datasets\ds-train-10k-5k-08-rnd--15.npz")
 print(trainDataset.params)
 
-testDataset = gen.Sample.fromBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
+testDataset = lg.Sample.fromBin(r"D:\datasets\ds-test-5k-5k-08-rnd--15.npz")
 print(testDataset.params)

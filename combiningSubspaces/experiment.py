@@ -1,7 +1,5 @@
 import argparse
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 import time
@@ -11,7 +9,6 @@ from combinedModel import combLinModel
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
-from dataGenerator.sample import Sample
 
 
 # run one experiment
