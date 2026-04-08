@@ -155,24 +155,24 @@ def plot3D(tempLinearSample):
 temp_a = np.random.uniform(low = 0, high = 1, size = 1000)
 
 trainDataset = gg.generateSample(
-    nSamples = 5000,
+    nSamples = 10000,
     nFeatures = 1000,
     #nInformative = 1000,
     a = temp_a,
     b = 0,
     scale = 1
 )
-trainDataset.saveBin(r"D:\datasets\train-5k-1k.npz")
+trainDataset.saveBin(r"D:\datasets\train-10k-1k.npz")
 
 testDataset = gg.generateSample(
-    nSamples = 5000,
+    nSamples = 10000,
     nFeatures = 1000,
     #nInformative = 1000,
     a = temp_a,
     b = 0,
     scale = 1
 )
-testDataset.saveBin(r"D:\datasets\test-5k-1k.npz")
+testDataset.saveBin(r"D:\datasets\test-10k-1k.npz")
 
 
 

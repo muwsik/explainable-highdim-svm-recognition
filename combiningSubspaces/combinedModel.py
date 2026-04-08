@@ -41,6 +41,8 @@ class combLinModel:
         self.a /= np.linalg.norm(self.a) 
         self.b /= len(self.subspaceIndex)
 
+        self.coef_ = [self.a]
+
 
     def decision_function(self, X):
         inds = np.concatenate(self.subspaceIndex)

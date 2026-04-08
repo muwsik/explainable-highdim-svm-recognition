@@ -6,6 +6,7 @@ import time
 
 from sklearn.svm import SVC, LinearSVC
 from sklearn.metrics import accuracy_score
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import StandardScaler
 
 from combiningSubspaces.combinedModel import combLinModel
@@ -13,6 +14,9 @@ from dataGenerator.sample import Sample
 
 # run one experiment
 if __name__ == "__main__":
+
+    # for output of service information
+    _verbose = True
 
     # 1. Configuration command line arguments
     parser = argparse.ArgumentParser()
@@ -25,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type = str, required = True,
         help = "Output Excel file")
     parser.add_argument("--model", type = str, required = True,
-        choices=  ["SVC", "LinearSVC", "CombLinSVM"],
+        choices=  ["SVC", "LinearSVC", "CombLinSVM-LSVC"],
         help = "Model type")    
     
     # 1.2 Base SVM parameters
@@ -69,7 +73,7 @@ if __name__ == "__main__":
         # CombLinSVM
         "splits": check(args.splits)
     }
-    print(params)
+    print(f"\nExperiment ID: {params["id"]}")
 
 
     # 2. Main experiment logic
@@ -85,7 +89,7 @@ if __name__ == "__main__":
 
     # 2.2 Test dataset load
     testDataset = Sample.fromBin(args.test)
-    print(f"Test dataset '{args.test}' loded.")
+    print(f"Loded test dataset '{args.test}'.")
     #print(f"Parameters of dataset generation: {testDataset.params}")
 
     # standardization 
@@ -94,22 +98,23 @@ if __name__ == "__main__":
 
     # 2.3 Model for experiment
     if args.model == "SVC":    
-        model = SVC(C = args.C, kernel = args.kernel, verbose = True)
+        model = SVC(C = args.C, kernel = args.kernel, verbose = _verbose)
     elif args.model == "LinearSVC":    
-        model = LinearSVC(C = args.C, penalty = args.penalty, dual = False)
-    elif args.model == "CombLinSVM":
+        model = LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = _verbose)
+    elif args.model == "CombLinSVM-LSVC":
         model = combLinModel(numSplits = args.splits,
-            baseModel = lambda: LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = True))
+            baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose))
+    else:
         raise ValueError("Unknown model")
 
     # 2.4 Training
-    print(f"\tTraining model...")
+    print(f"Training model {args.model}")
     timeTrain = -time.time()
     model.fit(trainDataset.X, trainDataset.Y)
     timeTrain += time.time()
 
     # 2.5 Predicting
-    print(f"\tPredicting...")
+    print(f"Predicting...")
     timePredict = -time.time()
     myLabels = model.predict(testDataset.X)
     timePredict += time.time()
@@ -117,6 +122,7 @@ if __name__ == "__main__":
     # 2.Final 
     results = {
         "acc(test)": accuracy_score(testDataset.Y, myLabels),
+        "cosine": cosine_similarity([trainDataset.params["a"]], [model.coef_[0]])[0][0],
         "acc(train)": accuracy_score(trainDataset.Y, model.predict(trainDataset.X)),
         "time(train)": timeTrain,
         "time(predict)": timePredict,
@@ -129,7 +135,7 @@ if __name__ == "__main__":
         fileDF = pd.read_excel(args.output, sheet_name = "runs")
         df = pd.concat([fileDF, df], ignore_index = True)
 
-    metricCols = ["acc(test)", "acc(train)", "time(train)", "time(predict)"]
+    metricCols = list(results.keys())
 
     paramCols = [
         c for c in df.columns
@@ -149,4 +155,4 @@ if __name__ == "__main__":
         df.to_excel(writer, sheet_name = "runs", index = False)
         aggDF.to_excel(writer, sheet_name = "aggregated", index = False)
 
-    print(f"\tResults write in file '{os.path.basename(args.output)}'")
+    print(f"Results write in file '{os.path.basename(args.output)}'\n")
