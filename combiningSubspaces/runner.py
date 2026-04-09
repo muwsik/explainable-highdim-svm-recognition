@@ -2,18 +2,17 @@ import os
 import subprocess
 from itertools import product
 
-trainFile = r"D:\datasets\train-10k-1k.npz"
-testFile = r"D:\datasets\test-10k-1k.npz"
+trainFile = r"D:\datasets\mc-train-5k-1k-i100.npz"
+testFile = r"D:\datasets\mc-test-5k-1k-i100.npz"
 
-output = rf"D:\Cloud\SVM\{os.path.basename(trainFile)}__{os.path.basename(testFile)}.xlsx"
+output = rf"D:\Cloud\SVM\{os.path.basename(trainFile)}_-b_{os.path.basename(testFile)}.xlsx"
 
 # Iiterating through the parameters for specific methods
 
 print(f"---START---")
 
-
 # SVC
-C = [0.1, 1, 10]
+C = [0.1, 1]
 kernels = ["linear"]
 
 for _C, _kernel in product(C, kernels):
@@ -28,7 +27,7 @@ for _C, _kernel in product(C, kernels):
     ], cwd = ".", check = True)
 
 # CombLinSVM
-C = [0.1, 1, 10]
+C = [0.1, 1]
 splits = [1, 2, 5, 10]
 
 for _C, _splits in product(C, splits):
@@ -44,7 +43,7 @@ for _C, _splits in product(C, splits):
 
 
 # LinearSVC
-C = [0.1, 1, 10]
+C = [0.1, 1]
 penaltys = ['l1', 'l2']
 
 for _C, _penalty in product(C, penaltys):

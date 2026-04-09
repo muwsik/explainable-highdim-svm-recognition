@@ -41,3 +41,26 @@ def generateSample(
             "seed": seed
         }
     )
+
+if __name__ == "__main__":
+    temp_a = np.random.uniform(low = 0, high = 1, size = 1000)
+
+    trainDataset = generateSample(
+        nSamples = 10000,
+        nFeatures = 1000,
+        #nInformative = 1000,
+        a = temp_a,
+        b = 0,
+        scale = 1
+    )
+    #trainDataset.saveBin(r"D:\datasets\train-10k-1k.npz")
+
+    testDataset = generateSample(
+        nSamples = 10000,
+        nFeatures = 1000,
+        #nInformative = 1000,
+        a = temp_a,
+        b = 0,
+        scale = 1
+    )
+    #testDataset.saveBin(r"D:\datasets\test-10k-1k.npz")
