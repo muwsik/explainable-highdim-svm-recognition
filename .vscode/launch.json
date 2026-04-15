@@ -23,15 +23,15 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                "--train", "D:\\datasets\\train-10k-10.npz",
-                "--test", "D:\\datasets\\test-10k-10.npz",
-                "--C", "1",
+                "--train", "D:\\datasets\\mc-train-10k-f5000-i5000-r0-l0.npz",
+                "--test", "D:\\datasets\\mc-test-10k-f5000-i5000-r0-l0.npz",
+                "--C", "0.001",
                 // "--model", "LinearSVC",
                 // "--penalty", "l1", 
-                "--model", "SVC",
-                "--kernel", "linear",
-                // "--model", "CombLinSVM-LSVC",
-                // "--splits", "1",
+                // "--model", "SVC",
+                // "--kernel", "linear",
+                "--model", "CombLinSVM-LSVC",
+                "--splits", "1",
                 "--output", "temp.xlsx"
             ]
         }

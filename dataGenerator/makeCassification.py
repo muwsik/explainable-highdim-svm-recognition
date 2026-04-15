@@ -6,10 +6,10 @@ import numpy as np
 from dataGenerator.sample import Sample
 
 # параметры
-n_samples = 10000
-n_features = 1000
-n_informative = 100
-n_redundantint = 0
+n_samples = 20000
+n_features = 5000
+n_informative = 2500
+n_redundantint = 2500
 
 # 
 X, y = make_classification(
@@ -31,8 +31,10 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size = 0.5
 )
 
+namePart = f"{n_samples//2000}k-f{n_features}-i{n_informative}-r{n_redundantint}-l{n_features - n_informative - n_redundantint}"
+
 trainSample = Sample(X_train, y_train, {"a": np.zeros(n_features)})
-trainSample.saveBin(r"D:\datasets\mc-train-5k-1k-i100.npz")
+trainSample.saveBin(rf"D:\datasets\mc-train-2-{namePart}.npz")
 
 testSample = Sample(X_test, y_test, {"a": np.zeros(n_features)})
-testSample.saveBin(r"D:\datasets\mc-test-5k-1k-i100.npz")
+testSample.saveBin(rf"D:\datasets\mc-test-2-{namePart}.npz")

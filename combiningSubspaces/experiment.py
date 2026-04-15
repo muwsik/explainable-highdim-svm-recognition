@@ -101,12 +101,7 @@ if __name__ == "__main__":
     if args.model == "SVC":    
         model = SVC(C = args.C, kernel = args.kernel, verbose = _verbose)
     elif args.model == "LinearSVC":    
-        model = LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = _verbose)
-        # generator = np.random.default_rng(41)
-        # numIndex = trainDataset.X.shape[1]     
-        # inds = generator.permutation(numIndex)        
-        # trainDataset.X = trainDataset.X[:, inds]        
-        # testDataset.X = testDataset.X[:, inds]
+        model = LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = _verbose, max_iter = 2000)
     elif args.model == "CombLinSVM-LSVC":
         model = combLinModel(numSplits = args.splits,
             baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose))
@@ -128,10 +123,11 @@ if __name__ == "__main__":
     # 2.Final 
     results = {
         "acc(test)": accuracy_score(testDataset.Y, myLabels),
-        "cosine": cosine_similarity([trainDataset.params["a"]], [model.coef_[0]])[0][0],
+        "cosine": cosine_similarity([trainDataset.params["a"]], [model.coef_[0]])[0][0] if "a" in trainDataset.params else 0,
         "acc(train)": accuracy_score(trainDataset.Y, model.predict(trainDataset.X)),
+        "b": model.intercept_[0],
         "time(train)": timeTrain,
-        "time(predict)": timePredict,
+        #"time(predict)": timePredict,
     }
 
 

@@ -52,11 +52,17 @@ class Sample:
     def saveBin(self, filename):
         self.check()
 
-        np.savez_compressed(filename,
-            X = self.X,
-            Y = self.Y,
-            params = self.params
-        )
+        if (self.params is not None):
+            np.savez_compressed(filename,
+                X = self.X,
+                Y = self.Y,
+                params = self.params
+            )
+        else:
+            np.savez_compressed(filename,
+                X = self.X,
+                Y = self.Y
+            )
 
     def loadBin(self, filename):
         data = np.load(filename, allow_pickle = True)
@@ -67,10 +73,10 @@ class Sample:
         self.X = data["X"]
         self.Y = data["Y"]
         
-        if "params" in data:
+
+        self.params = {}
+        if ("params" in data):
             self.params = data["params"].item()
-        else:
-            self.params = {}
 
         self.check()
 
