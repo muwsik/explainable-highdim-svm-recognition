@@ -60,3 +60,43 @@ class combLinModel:
         scores = self.decision_function(X)
         labels = np.where(scores >= 0, 1, -1)
         return labels
+    
+
+def computeIntercept(model, X, Y, eps = 1e-3):
+    """
+    Estimate the bias *b* ONLY for LinearSVC using points near the margin.
+        model: trained LinearSVC model
+        X: objects of training sample
+        Y: objects labels in {-1, 1}
+        eps: tolerance for selecting points with *margin = 1 ± eps*
+    Return
+        b: estimated hyperplane displacement
+    """
+
+    # 
+    decision = model.decision_function(X)
+    margin = Y * decision
+
+    # potentially supporting objects
+    mask = np.abs(margin - 1) < eps
+    #print(f"count potentially supporting objects: {np.sum(mask)}")
+
+    b = None
+    if (np.sum(mask) > 0):
+        b = np.mean(Y[mask] - np.dot(X[mask], model.coef_[0]))
+    # else no potentially supporting objects with tolerance *eps*
+    # you can increase the value *eps*
+    
+    return b
+
+
+if __name__ == "__main__":
+    from sklearn.svm import LinearSVC
+    from dataGenerator.sample import Sample
+
+    trainDataset = Sample.fromBin(r"D:\datasets\b-10k-1k.npz")
+
+    model = LinearSVC(penalty = 'l1', dual = False, verbose = True)
+    model.fit(trainDataset.X, trainDataset.Y)
+
+    b = computeIntercept(model, trainDataset.X, trainDataset.Y)
