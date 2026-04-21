@@ -24,7 +24,7 @@ class combLinModel:
         self.subspaceIndex = np.array_split(inds, self.numSplits)
         self.subspaceModels = []
 
-        # training by subspaces
+        # training by subspaces 
         for tempSubspace in self.subspaceIndex:
             timeStartTrain = time.time()
             tempModel = self.baseModel()
@@ -33,15 +33,26 @@ class combLinModel:
 
             self.subspaceModels.append([tempModel, timeEndTrain - timeStartTrain])
 
-        # combining general solution 
+        # combining general solution as an average of subspace particular models
         for tempModel, _ in self.subspaceModels:
-            self.a = np.hstack((self.a, tempModel.coef_[0]))
-            self.b += tempModel.intercept_[0]
+            # normalization of the subspace model to preserve scale
+            tempNorm = np.linalg.norm(tempModel.coef_[0])
+            tempNormA = tempModel.coef_[0] / tempNorm
+            tempNormB = tempModel.intercept_[0] / tempNorm
 
-        self.a /= np.linalg.norm(self.a) 
-        self.b /= len(self.subspaceIndex)
+            # since the models are built in orthogonal coordinate systems,
+            # their addition in the final expanded space can be replaced by a simple union
+            self.a = np.hstack((self.a, tempNormA))
 
-        #
+            # displacement is added by the property of linear functions
+            self.b += tempNormB
+
+        # statistical averaging of models -> 1 / √N
+        # algebraic averaging of models -> 1 / N
+        self.a /= np.sqrt(len(self.subspaceIndex))
+        self.b /= np.sqrt(len(self.subspaceIndex))
+
+        # initial order of features
         temp = np.empty_like(self.a)
         temp[np.concatenate(self.subspaceIndex)] = self.a
         self.coef_ = [temp]
@@ -60,43 +71,17 @@ class combLinModel:
         scores = self.decision_function(X)
         labels = np.where(scores >= 0, 1, -1)
         return labels
-    
-
-def computeIntercept(model, X, Y, eps = 1e-3):
-    """
-    Estimate the bias *b* ONLY for LinearSVC using points near the margin.
-        model: trained LinearSVC model
-        X: objects of training sample
-        Y: objects labels in {-1, 1}
-        eps: tolerance for selecting points with *margin = 1 ± eps*
-    Return
-        b: estimated hyperplane displacement
-    """
-
-    # 
-    decision = model.decision_function(X)
-    margin = Y * decision
-
-    # potentially supporting objects
-    mask = np.abs(margin - 1) < eps
-    #print(f"count potentially supporting objects: {np.sum(mask)}")
-
-    b = None
-    if (np.sum(mask) > 0):
-        b = np.mean(Y[mask] - np.dot(X[mask], model.coef_[0]))
-    # else no potentially supporting objects with tolerance *eps*
-    # you can increase the value *eps*
-    
-    return b
 
 
-if __name__ == "__main__":
-    from sklearn.svm import LinearSVC
-    from dataGenerator.sample import Sample
+    def recalucateIntercept(self, X, Y, eps = 1e-2):        
+        inds = np.concatenate(self.subspaceIndex)
+        decision  = np.dot(X[:, inds], self.a)
 
-    trainDataset = Sample.fromBin(r"D:\datasets\b-10k-1k.npz")
+        mask = np.abs(Y*decision - 1) < eps
 
-    model = LinearSVC(penalty = 'l1', dual = False, verbose = True)
-    model.fit(trainDataset.X, trainDataset.Y)
+        b = None
+        if (np.sum(mask) > 0):
+            b = np.mean(Y[mask] - decision[mask])
 
-    b = computeIntercept(model, trainDataset.X, trainDataset.Y)
+        self.b = b
+        return b

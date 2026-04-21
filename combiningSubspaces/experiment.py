@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type = str, required = True,
         help = "Output Excel file")
     parser.add_argument("--model", type = str, required = True,
-        choices=  ["SVC", "LinearSVC", "CombLinSVM-LSVC"],
+        choices=  ["SVC", "LinearSVC", "CombLinSVM-LSVC-l1", "CombLinSVM-LSVC-l2"],
         help = "Model type")    
     
     # 1.2 Base SVM parameters
@@ -66,10 +66,10 @@ if __name__ == "__main__":
         "C": args.C,
 
         # SVC
-        "kernel": check(args.kernel),
+        #"kernel": check(args.kernel),
         
         # LinearSVC
-        "penalty": check(args.penalty),
+        #"penalty": check(args.penalty),
 
         # CombLinSVM
         "splits": check(args.splits)
@@ -101,10 +101,13 @@ if __name__ == "__main__":
     if args.model == "SVC":    
         model = SVC(C = args.C, kernel = args.kernel, verbose = _verbose)
     elif args.model == "LinearSVC":    
-        model = LinearSVC(C = args.C, penalty = args.penalty, dual = False, verbose = _verbose, max_iter = 2000)
-    elif args.model == "CombLinSVM-LSVC":
+        model = LinearSVC(C = args.C, penalty = args.penalty, dual = 'auto', verbose = _verbose, max_iter = 5000)
+    elif args.model == "CombLinSVM-LSVC-l1":
         model = combLinModel(numSplits = args.splits,
             baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose))
+    elif args.model == "CombLinSVM-LSVC-l2":
+        model = combLinModel(numSplits = args.splits,
+        baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose))
     else:
         raise ValueError("Unknown model")
 
@@ -112,6 +115,9 @@ if __name__ == "__main__":
     print(f"Training model {args.model}")
     timeTrain = -time.time()
     model.fit(trainDataset.X, trainDataset.Y)
+    if args.model == "CombLinSVM-LSVC-l2" or args.model == "CombLinSVM-LSVC-l1":
+        model.recalucateIntercept(trainDataset.X, trainDataset.Y)
+
     timeTrain += time.time()
 
     # 2.5 Predicting
@@ -123,10 +129,11 @@ if __name__ == "__main__":
     # 2.Final 
     results = {
         "acc(test)": accuracy_score(testDataset.Y, myLabels),
-        "cosine": cosine_similarity([trainDataset.params["a"]], [model.coef_[0]])[0][0] if "a" in trainDataset.params else 0,
         "acc(train)": accuracy_score(trainDataset.Y, model.predict(trainDataset.X)),
-        "b": model.intercept_[0],
         "time(train)": timeTrain,
+        #"cosine": cosine_similarity([trainDataset.params["a"]], [model.coef_[0]])[0][0] if "a" in trainDataset.params else 0,
+        "b": model.intercept_[0],
+        "num_nonzero": np.sum(np.abs(model.coef_) > 1e-6),
         #"time(predict)": timePredict,
     }
 
