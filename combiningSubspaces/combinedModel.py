@@ -71,17 +71,3 @@ class combLinModel:
         scores = self.decision_function(X)
         labels = np.where(scores >= 0, 1, -1)
         return labels
-
-
-    def recalucateIntercept(self, X, Y, eps = 1e-2):        
-        inds = np.concatenate(self.subspaceIndex)
-        decision  = np.dot(X[:, inds], self.a)
-
-        mask = np.abs(Y*decision - 1) < eps
-
-        b = None
-        if (np.sum(mask) > 0):
-            b = np.mean(Y[mask] - decision[mask])
-
-        self.b = b
-        return b
