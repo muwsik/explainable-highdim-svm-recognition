@@ -20,10 +20,8 @@ _flagStandardization = True
 # for output of service information
 _verbose = True
 
-# run one experiment
+
 if __name__ == "__main__":
-
-
     # 1. Configuration command line arguments
     parser = argparse.ArgumentParser()
 
@@ -93,12 +91,14 @@ if __name__ == "__main__":
         elif args.model == "Comb-LSVC-l1":
             model = combLinModel(
                 numSplits = args.splits,
-                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose)
+                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
+                # TODO seed = ...
             )
         elif args.model == "Comb-LSVC-l2":
             model = combLinModel(
                 numSplits = args.splits,
-                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose)
+                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),
+                # TODO seed = ...
             )
         else:
             raise ValueError("Unknown model!")
@@ -128,7 +128,6 @@ if __name__ == "__main__":
             "TN": TN,
             "FP": FP,
             "FN": FN,
-
 
             "nonzero_f": np.sum(np.abs(model.coef_) > 1e-6),
             "time(train)": timeTrain,

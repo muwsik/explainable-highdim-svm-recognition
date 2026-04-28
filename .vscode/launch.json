@@ -1,7 +1,6 @@
 {
     // Используйте IntelliSense, чтобы узнать о возможных атрибутах.
     // Наведите указатель мыши, чтобы просмотреть описания существующих атрибутов.
-          
     "version": "0.2.0",
     "configurations": [        
         {
@@ -9,7 +8,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-             "env": {
+            "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             },
         },
@@ -23,11 +22,29 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                "--data", "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\darwin.npz",
-                "--C", "0.1",
-                "--model", "Comb-LSVC-l1",
-                "--splits", "100",
-                "--output", "temp.xlsx"
+                "--data",       "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\darwin.npz",
+                "--C",          "0.1",
+                "--model",      "Comb-LSVC-l1",
+                "--splits",     "100",
+                "--output",     "temp.xlsx"
+            ]
+        },
+        {
+            "name": "Debug split experiment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "combiningSubspaces/split_experiment.py",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [
+                 "--train",     "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\gisette\\gisette_scale_tr.npz",
+                "--test",       "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\gisette\\gisette_scale_t.npz",
+                "--C",          "0.1",
+                "--model",      "Comb-LSVC-l1",
+                "--splits",     "2",
+                "--output",     "temp.xlsx"
             ]
         }
     ]
