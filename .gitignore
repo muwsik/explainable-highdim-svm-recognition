@@ -34,3 +34,11 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# raw datasets
+datasets/gisette/gisette_scale_t
+datasets/gisette/gisette_scale_tr
+
+
+datasets/gisette/gisette_scale_t.npz
+datasets/gisette/gisette_scale_tr.npz
