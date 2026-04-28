@@ -122,13 +122,15 @@ if __name__ == "__main__":
         tempResults = {
             "acc(test)": accuracy_score(testSet.Y, myLabels),
             "auc(test)": roc_auc_score(testSet.Y, model.decision_function(testSet.X)),
+            "acc(train)": accuracy_score(trainSet.Y, model.predict(trainSet.X)),
 
             "TP": TP,
             "TN": TN,
             "FP": FP,
             "FN": FN,
 
-            "acc(train)": accuracy_score(trainSet.Y, model.predict(trainSet.X)),
+
+            "nonzero_f": np.sum(np.abs(model.coef_) > 1e-6),
             "time(train)": timeTrain,
             "time(predict)": timePredict,
         }
@@ -152,11 +154,13 @@ if __name__ == "__main__":
     grouped = df.groupby(paramCols)
 
     aggResults = {}
-    for col in metricCols:
-        aggResults[col + "_mean"] = (col, "mean")
-        aggResults[col + "_std"] = (col, "std")
-    
     aggResults["runs"] = (metricCols[0], "count")
+
+    for col in metricCols:        
+        aggResults[col + "_mean"] = (col, "mean")
+        
+    for col in metricCols:
+        aggResults[col + "_std"] = (col, "std")    
 
     aggDF = grouped.agg(**aggResults).reset_index()
 

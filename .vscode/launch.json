@@ -14,24 +14,19 @@
             },
         },
         {
-            "name": "Debug experiment.py",
+            "name": "Debug CV experiment",
             "type": "debugpy",
             "request": "launch",
-            "program": "combiningSubspaces/experiment.py",
+            "program": "combiningSubspaces/CV_experiment.py",
             "cwd": "${workspaceFolder}",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                "--train", "D:\\datasets\\mc-train-10k-f5000-i5000-r0-l0.npz",
-                "--test", "D:\\datasets\\mc-test-10k-f5000-i5000-r0-l0.npz",
-                "--C", "0.001",
-                // "--model", "LinearSVC",
-                // "--penalty", "l1", 
-                // "--model", "SVC",
-                // "--kernel", "linear",
-                "--model", "CombLinSVM-LSVC",
-                "--splits", "1",
+                "--data", "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\darwin.npz",
+                "--C", "0.1",
+                "--model", "Comb-LSVC-l1",
+                "--splits", "100",
                 "--output", "temp.xlsx"
             ]
         }
