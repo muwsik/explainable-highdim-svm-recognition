@@ -60,6 +60,9 @@ class combLinModel:
         # 
         self.intercept_ = [self.b]
 
+        #
+        self.n_iter_ = np.median([i[0].n_iter_ for i in self.subspaceModels])
+
 
     def decision_function(self, X):
         inds = np.concatenate(self.subspaceIndex)

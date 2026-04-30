@@ -140,24 +140,19 @@ if __name__ == "__main__":
         fileDF = pd.read_excel(args.output, sheet_name = "runs")
         df = pd.concat([fileDF, df], ignore_index = True)
 
-    metricCols = list(results.keys())
-
-    paramCols = [
-        c for c in df.columns
-            if c not in metricCols + ['id', 'seed', 'data']
-    ]
-
-    grouped = df.groupby(paramCols)
-
     aggResults = {}
+    metricCols = list(results.keys())
     aggResults["runs"] = (metricCols[0], "count")
-
     for col in metricCols:        
-        aggResults[col + "_mean"] = (col, "mean")
-        
+        aggResults[col + "_mean"] = (col, "mean")        
     for col in metricCols:
         aggResults[col + "_std"] = (col, "std")    
 
+    paramCols = [
+        c for c in df.columns
+            if c not in metricCols + ['id', 'seed', 'train', 'test']
+    ]
+    grouped = df.groupby(paramCols)
     aggDF = grouped.agg(**aggResults).reset_index()
 
     with pd.ExcelWriter(args.output, engine = "openpyxl") as writer:

@@ -22,10 +22,10 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                "--data",       "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\darwin.npz",
+                "--data",       "datasets\\darwin\\darwin.npz",
                 "--C",          "0.1",
                 "--model",      "Comb-LSVC-l1",
-                "--splits",     "100",
+                "--splits",     "15",
                 "--output",     "temp.xlsx"
             ]
         },

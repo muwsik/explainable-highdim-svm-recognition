@@ -18,21 +18,24 @@ from dataGenerator.sample import Sample
 _flagStandardization = True
 
 # for output of service information
-_verbose = True
+_verbose = False
 
 
 if __name__ == "__main__":
     # 1. Configuration command line arguments
     parser = argparse.ArgumentParser()
 
-    # 1.1 General app parameters
+    # 1.1 General experiment parameters
     parser.add_argument("--data", type = str, required = True,
         help = "Path to full dataset (.npz)")
     parser.add_argument("--output", type = str, required = True,
         help = "Output Excel file")
     parser.add_argument("--model", type = str, required = True,
         choices=  ["SVC-linear", "Comb-LSVC-l1", "Comb-LSVC-l2"],
-        help = "Model type")    
+        help = "Model type")
+    parser.add_argument("--folds", type = int, default = 5,
+        help = "Number of cross validation folds")
+    
     
     # 1.2 Base SVM parameters
     parser.add_argument("--C", type = float, default = 1.0,
@@ -50,14 +53,15 @@ if __name__ == "__main__":
     
     params = {
         # general        
-        "id": time.time(),
-        "seed": np.random.randint(0, 2**31 - 1),
-        "data": os.path.basename(args.data),
-        "model": args.model,
-        "C": args.C,
+        'id': time.time(),
+        'seed': np.random.randint(0, 2**31 - 1),
+        'data': os.path.basename(args.data),
+        'folds': args.folds,
+        'model': args.model,
+        'C': args.C,
 
         # CombLinSVM
-        "splits": check(args.splits)
+        'splits': check(args.splits)
     }
     print(f"\nExperiment params: {params}")
 
@@ -68,9 +72,9 @@ if __name__ == "__main__":
     print(f"Loded dataset '{args.data}'.")
     
     # 2.2 Split dataset
-    fullResults = []
-
+    foldResults = []
     skf = StratifiedKFold(n_splits = 5, shuffle = True, random_state = params['seed'])
+    rngFold = np.random.RandomState(params['seed'])
     for trainIndex, testIndex in skf.split(dataset.X, dataset.Y):
         trainSet = Sample(dataset.X[trainIndex], dataset.Y[trainIndex]) 
         testSet = Sample(dataset.X[testIndex], dataset.Y[testIndex]) 
@@ -92,75 +96,69 @@ if __name__ == "__main__":
             model = combLinModel(
                 numSplits = args.splits,
                 baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
-                # TODO seed = ...
+                seed = rngFold.randint(0, 2**31 - 1)
             )
         elif args.model == "Comb-LSVC-l2":
             model = combLinModel(
                 numSplits = args.splits,
                 baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),
-                # TODO seed = ...
+                seed = rngFold.randint(0, 2**31 - 1)
             )
         else:
             raise ValueError("Unknown model!")
 
         # 2.4 Training
-        print(f"Training model {args.model}")
+        print(f"Training model on fold {args.model}")
         timeTrain = -time.time()
         model.fit(trainSet.X, trainSet.Y)
         timeTrain += time.time()
 
         # 2.5 Predicting
-        print(f"Predicting...")
+        print(f"Predicting on fold...")
         timePredict = -time.time()
         myLabels = model.predict(testSet.X)
         timePredict += time.time()
 
-        # 2.6 Quality matrix
-        TN, FP, FN, TP = confusion_matrix(testSet.Y, myLabels, labels = [-1, 1]).ravel()
-
-        # 2.Final 
+        # 2.6 Quality measures    
         tempResults = {
-            "acc(test)": accuracy_score(testSet.Y, myLabels),
-            "auc(test)": roc_auc_score(testSet.Y, model.decision_function(testSet.X)),
-            "acc(train)": accuracy_score(trainSet.Y, model.predict(trainSet.X)),
+            'Acc(test)': accuracy_score(testSet.Y, myLabels),
+            'AUC(test)': roc_auc_score(testSet.Y, model.decision_function(testSet.X)),
+            'Acc(Train)': accuracy_score(trainSet.Y, model.predict(trainSet.X)),
 
-            "TP": TP,
-            "TN": TN,
-            "FP": FP,
-            "FN": FN,
-
-            "nonzero_f": np.sum(np.abs(model.coef_) > 1e-6),
-            "time(train)": timeTrain,
-            "time(predict)": timePredict,
+            'nonzero_features': np.sum(np.abs(model.coef_) > 1e-6),
+            'n_iter': model.n_iter_,
+            
+            'time(train)': timeTrain,
+            'time(predict)': timePredict,
         }
 
-        fullResults.append({**params, **tempResults})
+        foldResults.append(tempResults)
 
+    # 2.Final 
+    meanResultsCV = {
+        k: np.mean([fr[k] for fr in foldResults])
+        for k in foldResults[0]
+    }
 
     # 3. Writing results to Excel file
-    df = pd.DataFrame(fullResults)
+    df = pd.DataFrame([{**params, **meanResultsCV}])
     if os.path.exists(args.output):
         fileDF = pd.read_excel(args.output, sheet_name = "runs")
         df = pd.concat([fileDF, df], ignore_index = True)
 
-    metricCols = list(tempResults.keys())
+    aggResults = {}
+    metricCols = list(meanResultsCV.keys())
+    aggResults["runs"] = (metricCols[0], "count")
+    for col in metricCols:        
+        aggResults[col + "_mean"] = (col, "mean")        
+    for col in metricCols:
+        aggResults[col + "_std"] = (col, "std")    
 
     paramCols = [
         c for c in df.columns
             if c not in metricCols + ['id', 'seed', 'data']
     ]
-
     grouped = df.groupby(paramCols)
-
-    aggResults = {}
-    aggResults["runs"] = (metricCols[0], "count")
-
-    for col in metricCols:        
-        aggResults[col + "_mean"] = (col, "mean")
-        
-    for col in metricCols:
-        aggResults[col + "_std"] = (col, "std")    
-
     aggDF = grouped.agg(**aggResults).reset_index()
 
     with pd.ExcelWriter(args.output, engine = "openpyxl") as writer:
