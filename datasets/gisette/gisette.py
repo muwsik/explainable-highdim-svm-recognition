@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.datasets import load_svmlight_file
 
 # === 1. загрузка LIBSVM ===
-X_sparse, y = load_svmlight_file(r"D:\Projects\explainable-highdim-svm-recognition\datasets\gisette\gisette_scale_tr")
+X_sparse, y = load_svmlight_file(r"\datasets\gisette\gisette_scale_tr")
 
 # === 2. преобразование в dense ===
 X = X_sparse.toarray().astype(np.float32)
@@ -22,6 +22,6 @@ print("Shape:", X.shape)
 print("Classes after:", np.unique(y))
 
 # === 6. сохранение ===
-np.savez(r"D:\Projects\explainable-highdim-svm-recognition\datasets\gisette\gisette_scale_tr.npz", X = X, Y = y)
+np.savez(r"\datasets\gisette\gisette_scale_tr.npz", X = X, Y = y)
 
 print("Saved to *.npz")

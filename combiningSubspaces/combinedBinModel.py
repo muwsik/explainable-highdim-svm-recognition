@@ -1,11 +1,11 @@
+from scipy import sparse
 import numpy as np
 import time
 
-from sklearn.svm import SVC
-
+from sklearn.svm import LinearSVC
 
 class combBinModel:
-    def __init__(self, numSplits, baseModel = lambda: SVC(kernel = 'linear'), seed = None):
+    def __init__(self, numSplits, baseModel = lambda: LinearSVC(C = 1, penalty = 'l1', dual = False), seed = None):
         self.numSplits = numSplits
         self.baseModel = baseModel
 
@@ -18,8 +18,8 @@ class combBinModel:
         self.n_iter_ = None
 
     def fit(self, X, Y):
-        w = np.array([])
-        b = 0
+        w = []      # weight vector (normal vector hyperplane)
+        b = 0       # bias term hyperplane
 
         # slit fearutes on subspaces   
         numIndex = X.shape[1]     
@@ -40,19 +40,23 @@ class combBinModel:
         for tempModel, _ in self.subspaceModels:
             # normalization of the subspace model to preserve scale
             tempNorm = np.linalg.norm(tempModel.coef_[0])
-            tempNormA = tempModel.coef_[0] / tempNorm
-            tempNormB = tempModel.intercept_[0] / tempNorm
+            if (tempNorm == 0):
+                tempNormA = np.zeros_like(tempModel.coef_[0])
+                tempNormB = 0.0
+            else:
+                tempNormA = tempModel.coef_[0] / tempNorm
+                tempNormB = tempModel.intercept_[0] / tempNorm
 
             # since the models are built in orthogonal coordinate systems,
             # their addition in the final expanded space can be replaced by a simple union
-            w = np.hstack((w, tempNormA))
+            w.append(tempNormA)
 
-            # displacement is added by the property of linear functions
+            # bias is added by property of linear functions
             b += tempNormB
 
         # statistical averaging of models -> 1 / √N
         # algebraic averaging of models -> 1 / N
-        w /= np.sqrt(len(self.subspaceIndex))
+        w = np.concatenate(w) / np.sqrt(len(self.subspaceIndex))
         b /= np.sqrt(len(self.subspaceIndex))
 
         # initial order of features
@@ -60,7 +64,7 @@ class combBinModel:
         temp[shuffledIndexes] = w
         self.coef_ = [temp]
 
-        # 
+        # bias
         self.intercept_ = [b]
 
         #
@@ -68,7 +72,13 @@ class combBinModel:
 
 
     def decision_function(self, X):
-        scores = np.dot(X, self.coef_[0]) + self.intercept_[0]
+        w = self.coef_[0]
+        
+        if sparse.issparse(X):
+            scores = X.dot(w) + self.intercept_[0]
+        else:
+            scores = np.dot(X, w) + self.intercept_[0]
+
         return scores
 
 

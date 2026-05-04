@@ -1,15 +1,16 @@
 import numpy as np
 import os
 
+from sklearn import datasets
+
 
 # Organization of sample data storage
 class Sample:
-    def __init__(self, _X = None, _Y = None, _params = None):
+    def __init__(self, _X = None, _Y = None):
         self.X = _X
         self.Y = _Y
-        self.params = _params
 
-
+    # verification
     def check(self):
         if self.X is None or self.Y is None:
             raise ValueError("No data")
@@ -28,14 +29,12 @@ class Sample:
             raise ValueError(f"Unexpected classes: {u}")
 
 
+    # (1) for text data in format "<label> feature1 feature2 ... featureN"
     def saveTXT(self, filename, append = True, delim = ' '):
         self.check()
-
         data = np.column_stack((self.Y, self.X))
-
         with open(filename, "a" if append else "w") as tempF:
             np.savetxt(tempF, data, delimiter = delim, fmt = "%.3f")
-
 
     def loadTXT(self, filename, delim = ' '):
         if not os.path.exists(filename):
@@ -49,22 +48,18 @@ class Sample:
         self.check()
 
 
+    # (2) for dense binary data
     def saveBin(self, filename):
         self.check()
+        np.savez_compressed(filename,
+            X = self.X,
+            Y = self.Y
+        )
 
-        if (self.params is not None):
-            np.savez_compressed(filename,
-                X = self.X,
-                Y = self.Y,
-                params = self.params
-            )
-        else:
-            np.savez_compressed(filename,
-                X = self.X,
-                Y = self.Y
-            )
-
-    def loadBin(self, filename):
+    def loadBin(self, filename):        
+        if not os.path.exists(filename):
+            raise FileNotFoundError(filename)
+        
         data = np.load(filename, allow_pickle = True)
 
         if "X" not in data or "Y" not in data:
@@ -73,15 +68,55 @@ class Sample:
         self.X = data["X"]
         self.Y = data["Y"]
         
+        self.check()
 
-        self.params = {}
-        if ("params" in data):
-            self.params = data["params"].item()
+
+    # (3) for sparse text datа in format libsvm
+    def loadSparse(self, filename):
+        if not os.path.exists(filename):
+            raise FileNotFoundError(filename)
+
+        X, Y = datasets.load_svmlight_file(filename)
+
+        self.X = X 
+        self.Y = Y.astype(np.int8)
 
         self.check()
 
+    def saveSparse(self, filename):
+        self.check()
+        datasets.dump_svmlight_file(
+            self.X,
+            self.Y.astype(np.float64),
+            filename,
+            zero_based = False
+        )
+
+
+    # automatic uploading data from a file in one of the supported formats
     @classmethod
-    def fromBin(cls, filemane):
-        obj = cls()
-        obj.loadBin(filemane)
-        return obj
+    def fromFile(cls, filename):
+        if not os.path.exists(filename):
+            raise FileNotFoundError(filename)
+        
+        obj = cls()        
+        
+        try: # dense .npz (2)
+            obj.loadBin(filename)
+            return obj 
+        except Exception:
+            pass
+
+        try: # sparse .txt (3)
+            obj.loadSparse(filename)
+            return obj 
+        except Exception:
+            pass
+        
+        try: # dense .txt (1)
+            obj.loadTXT(filename)
+            return obj 
+        except Exception:
+            pass
+        
+        raise ValueError(f"Unknown or unsupported file format: {filename}")

@@ -46,6 +46,7 @@
                 "--model",      "Comb-LSVC-l1",
                 "--splits",     "2",
                 "--output",     "temp.xlsx",
+                "--no-std", 
             ]
         }
     ]

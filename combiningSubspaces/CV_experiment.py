@@ -2,12 +2,13 @@ import argparse
 import os
 
 import numpy as np
+from scipy import sparse
 import pandas as pd
 import time
 
 from sklearn.svm import SVC, LinearSVC
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.preprocessing import StandardScaler, MaxAbsScaler
 from sklearn.model_selection import StratifiedKFold
 
 from combiningSubspaces.combinedBinModel import combBinModel
@@ -64,11 +65,10 @@ if __name__ == "__main__":
     }
     print(f"\nExperiment params: {params}")
 
-
     # 2. Main experiment logic
     # 2.1 Dataset load
-    dataset = Sample.fromBin(args.data)
-    print(f"Loded dataset '{args.data}'.")
+    dataset = Sample.fromFile(args.data)
+    print(f"Loded dataset '{args.data}'. Sparse: {sparse.issparse(dataset.X)}")
     
     # 2.2 Split dataset
     foldResults = []
@@ -79,7 +79,13 @@ if __name__ == "__main__":
         testSet = Sample(dataset.X[testIndex], dataset.Y[testIndex]) 
 
         if (args.std):
-            scaler = StandardScaler()
+            if sparse.issparse(trainSet.X):
+                scaler = MaxAbsScaler()
+                print("Using MaxAbsScaler (sparse)")
+            else:
+                scaler = StandardScaler()
+                print("Using StandardScaler (dense)")
+
             trainSet.X = scaler.fit_transform(trainSet.X)
             testSet.X = scaler.transform(testSet.X)
             print(f"Fold standardized")

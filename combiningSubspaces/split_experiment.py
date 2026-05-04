@@ -2,12 +2,13 @@ import argparse
 import os
 
 import numpy as np
+from scipy import sparse
 import pandas as pd
 import time
 
 from sklearn.svm import SVC, LinearSVC
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MaxAbsScaler
 
 from combiningSubspaces.combinedBinModel import combBinModel
 from dataGenerator.sample import Sample
@@ -31,8 +32,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", type = str, required = True,
         choices=  ["SVC-linear", "Comb-LSVC-l1", "Comb-LSVC-l2"],
         help = "Model type")    
-    parser.add_argument("--std", type = bool, default = True,
-        help = "Standardize the data or not")    
+    parser.add_argument("--no-std", action = "store_false", dest = "std",
+        help = "Disable standardization") 
     
     # 1.2 Base SVM parameters
     parser.add_argument("--C", type = float, default = 1.0,
@@ -66,19 +67,25 @@ if __name__ == "__main__":
 
     # 2. Main experiment logic
     # 2.1 Train dataset load
-    trainDataset = Sample.fromBin(args.train)
-    print(f"Loded train dataset '{params['train']}'.")
+    trainDataset = Sample.fromFile(args.train)
+    print(f"Loded train dataset '{params['train']}'. Sparse: {sparse.issparse(trainDataset.X)}")
     
     # 2.2 Test dataset load
-    testDataset = Sample.fromBin(args.test)
-    print(f"Loded test dataset '{params['test']}'.")
+    testDataset = Sample.fromFile(args.test)
+    print(f"Loded test dataset '{params['test']}'. Sparse: {sparse.issparse(testDataset.X)}")
+    
 
     # standardization 
     if (args.std):
-        scaler = StandardScaler()
+        if sparse.issparse(trainDataset.X):
+            scaler = MaxAbsScaler()
+            print("Using MaxAbsScaler (sparse). Train and test datasets standardized")
+        else:
+            scaler = StandardScaler()
+            print("Using StandardScaler (dense). Train and test datasets standardized")
+
         trainDataset.X = scaler.fit_transform(trainDataset.X)
         testDataset.X = scaler.transform(testDataset.X)
-        print(f"Train and test datasets standardized")
 
     # 2.3 Model for experiment
     if args.model == "SVC-linear":    
