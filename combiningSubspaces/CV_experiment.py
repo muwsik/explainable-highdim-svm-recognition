@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold
 
-from combiningSubspaces.combinedModel import combLinModel
+from combiningSubspaces.combinedBinModel import combBinModel
 from dataGenerator.sample import Sample
 
 
@@ -92,13 +92,13 @@ if __name__ == "__main__":
                 verbose = _verbose
             )
         elif args.model == "Comb-LSVC-l1":
-            model = combLinModel(
+            model = combBinModel(
                 numSplits = args.splits,
                 baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
                 seed = rngFold.randint(0, 2**31 - 1)
             )
         elif args.model == "Comb-LSVC-l2":
-            model = combLinModel(
+            model = combBinModel(
                 numSplits = args.splits,
                 baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),
                 seed = rngFold.randint(0, 2**31 - 1)

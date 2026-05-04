@@ -9,7 +9,7 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
-from combiningSubspaces.combinedModel import combLinModel
+from combiningSubspaces.combinedBinModel import combBinModel
 from dataGenerator.sample import Sample
 
 
@@ -88,13 +88,13 @@ if __name__ == "__main__":
             verbose = _verbose
         )
     elif args.model == "Comb-LSVC-l1":
-        model = combLinModel(
+        model = combBinModel(
             numSplits = args.splits,
             baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
             seed = params['seed']
         )
     elif args.model == "Comb-LSVC-l2":
-        model = combLinModel(
+        model = combBinModel(
             numSplits = args.splits,
             baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),            
             seed = params['seed']

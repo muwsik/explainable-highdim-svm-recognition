@@ -4,24 +4,27 @@ import time
 from sklearn.svm import SVC
 
 
-class combLinModel:
+class combBinModel:
     def __init__(self, numSplits, baseModel = lambda: SVC(kernel = 'linear'), seed = None):
         self.numSplits = numSplits
         self.baseModel = baseModel
 
         self.generator = np.random.default_rng(seed)
-
         self.subspaceIndex = None
-        self.subspaceModels = None         
-        self.a = np.array([])
-        self.b = 0
+        self.subspaceModels = None 
 
+        self.coef_ = None
+        self.intercept_ = None
+        self.n_iter_ = None
 
     def fit(self, X, Y):
+        w = np.array([])
+        b = 0
+
         # slit fearutes on subspaces   
         numIndex = X.shape[1]     
-        inds = self.generator.permutation(numIndex)
-        self.subspaceIndex = np.array_split(inds, self.numSplits)
+        shuffledIndexes = self.generator.permutation(numIndex)
+        self.subspaceIndex = np.array_split(shuffledIndexes, self.numSplits)
         self.subspaceModels = []
 
         # training by subspaces 
@@ -42,31 +45,30 @@ class combLinModel:
 
             # since the models are built in orthogonal coordinate systems,
             # their addition in the final expanded space can be replaced by a simple union
-            self.a = np.hstack((self.a, tempNormA))
+            w = np.hstack((w, tempNormA))
 
             # displacement is added by the property of linear functions
-            self.b += tempNormB
+            b += tempNormB
 
         # statistical averaging of models -> 1 / √N
         # algebraic averaging of models -> 1 / N
-        self.a /= np.sqrt(len(self.subspaceIndex))
-        self.b /= np.sqrt(len(self.subspaceIndex))
+        w /= np.sqrt(len(self.subspaceIndex))
+        b /= np.sqrt(len(self.subspaceIndex))
 
         # initial order of features
-        temp = np.empty_like(self.a)
-        temp[np.concatenate(self.subspaceIndex)] = self.a
+        temp = np.empty_like(w)
+        temp[shuffledIndexes] = w
         self.coef_ = [temp]
 
         # 
-        self.intercept_ = [self.b]
+        self.intercept_ = [b]
 
         #
         self.n_iter_ = np.median([i[0].n_iter_ for i in self.subspaceModels])
 
 
     def decision_function(self, X):
-        inds = np.concatenate(self.subspaceIndex)
-        scores = np.dot(X[:, inds], self.a) + self.b
+        scores = np.dot(X, self.coef_[0]) + self.intercept_[0]
         return scores
 
 

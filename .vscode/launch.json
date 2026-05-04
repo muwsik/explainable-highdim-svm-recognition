@@ -40,12 +40,12 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                 "--train",     "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\gisette\\gisette_scale_tr.npz",
-                "--test",       "D:\\Projects\\explainable-highdim-svm-recognition\\datasets\\gisette\\gisette_scale_t.npz",
+                 "--train",     "datasets\\gisette\\gisette_scale_tr.npz",
+                "--test",       "datasets\\gisette\\gisette_scale_t.npz",
                 "--C",          "0.1",
                 "--model",      "Comb-LSVC-l1",
                 "--splits",     "2",
-                "--output",     "temp.xlsx"
+                "--output",     "temp.xlsx",
             ]
         }
     ]
