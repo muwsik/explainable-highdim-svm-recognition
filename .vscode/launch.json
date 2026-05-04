@@ -26,7 +26,8 @@
                 "--C",          "0.1",
                 "--model",      "Comb-LSVC-l1",
                 "--splits",     "15",
-                "--output",     "temp.xlsx"
+                "--output",     "temp.xlsx",
+                "--no-std", 
             ]
         },
         {

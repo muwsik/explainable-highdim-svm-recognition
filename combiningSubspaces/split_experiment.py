@@ -6,15 +6,12 @@ import pandas as pd
 import time
 
 from sklearn.svm import SVC, LinearSVC
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
+from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
 from combiningSubspaces.combinedModel import combLinModel
 from dataGenerator.sample import Sample
 
-
-# for data standardization
-_flagStandardization = True
 
 # for output of service information
 _verbose = True
@@ -34,6 +31,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", type = str, required = True,
         choices=  ["SVC-linear", "Comb-LSVC-l1", "Comb-LSVC-l2"],
         help = "Model type")    
+    parser.add_argument("--std", type = bool, default = True,
+        help = "Standardize the data or not")    
     
     # 1.2 Base SVM parameters
     parser.add_argument("--C", type = float, default = 1.0,
@@ -51,15 +50,16 @@ if __name__ == "__main__":
     
     params = {
         # general        
-        "id": time.time(),
-        "seed": np.random.randint(0, 2**31 - 1),
-        "train": os.path.basename(args.train),
-        "test": os.path.basename(args.test),
-        "model": args.model,
-        "C": args.C,
+        'id': time.time(),
+        'seed': np.random.randint(0, 2**31 - 1),
+        'train': os.path.basename(args.train),
+        'test': os.path.basename(args.test),
+        'norm': args.std,
+        'model': args.model,
+        'C': args.C,
 
         # CombLinSVM
-        "splits": check(args.splits)
+        'splits': check(args.splits)
     }
     print(f"\nExperiment params: {params}")
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     print(f"Loded test dataset '{params['test']}'.")
 
     # standardization 
-    if (_flagStandardization):
+    if (args.std):
         scaler = StandardScaler()
         trainDataset.X = scaler.fit_transform(trainDataset.X)
         testDataset.X = scaler.transform(testDataset.X)
@@ -114,23 +114,17 @@ if __name__ == "__main__":
     myLabels = model.predict(testDataset.X)
     timePredict += time.time()
 
-    # 2.6 Quality matrix
-    TN, FP, FN, TP = confusion_matrix(testDataset.Y, myLabels, labels = [-1, 1]).ravel()
-
     # 2.Final 
     results = {
-        "acc(test)": accuracy_score(testDataset.Y, myLabels),
-        "auc(test)": roc_auc_score(testDataset.Y, model.decision_function(testDataset.X)),
-        "acc(train)": accuracy_score(trainDataset.Y, model.predict(trainDataset.X)),
+        'Acc(test)': accuracy_score(testDataset.Y, myLabels),
+        'AUC(test)': roc_auc_score(testDataset.Y, model.decision_function(testDataset.X)),
+        'Acc(train)': accuracy_score(trainDataset.Y, model.predict(trainDataset.X)),
 
-        "TP": TP,
-        "TN": TN,
-        "FP": FP,
-        "FN": FN,
+        'nonzero_features': np.sum(np.abs(model.coef_) > 1e-6),
+        'n_iter': model.n_iter_,
 
-        "nonzero_f": np.sum(np.abs(model.coef_) > 1e-6),
-        "time(train)": timeTrain,
-        "time(predict)": timePredict,
+        'time(train)': timeTrain,
+        'time(predict)': timePredict,
     }
 
 

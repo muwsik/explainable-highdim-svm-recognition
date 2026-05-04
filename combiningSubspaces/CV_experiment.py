@@ -14,9 +14,6 @@ from combiningSubspaces.combinedModel import combLinModel
 from dataGenerator.sample import Sample
 
 
-# for data standardization
-_flagStandardization = True
-
 # for output of service information
 _verbose = False
 
@@ -34,9 +31,10 @@ if __name__ == "__main__":
         choices=  ["SVC-linear", "Comb-LSVC-l1", "Comb-LSVC-l2"],
         help = "Model type")
     parser.add_argument("--folds", type = int, default = 5,
-        help = "Number of cross validation folds")
-    
-    
+        help = "Number of cross validation folds")    
+    parser.add_argument("--no-std", action = "store_false", dest = "std",
+        help = "Disable standardization") 
+
     # 1.2 Base SVM parameters
     parser.add_argument("--C", type = float, default = 1.0,
         help = "Regularization SVM parameter")
@@ -57,6 +55,7 @@ if __name__ == "__main__":
         'seed': np.random.randint(0, 2**31 - 1),
         'data': os.path.basename(args.data),
         'folds': args.folds,
+        'norm': args.std,
         'model': args.model,
         'C': args.C,
 
@@ -79,7 +78,7 @@ if __name__ == "__main__":
         trainSet = Sample(dataset.X[trainIndex], dataset.Y[trainIndex]) 
         testSet = Sample(dataset.X[testIndex], dataset.Y[testIndex]) 
 
-        if (_flagStandardization):
+        if (args.std):
             scaler = StandardScaler()
             trainSet.X = scaler.fit_transform(trainSet.X)
             testSet.X = scaler.transform(testSet.X)
