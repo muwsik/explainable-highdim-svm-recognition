@@ -16,7 +16,7 @@ from dataGenerator.sample import Sample
 
 
 # for output of service information
-_verbose = False
+_verbose = True
 
 
 if __name__ == "__main__":
@@ -72,8 +72,8 @@ if __name__ == "__main__":
     
     # 2.2 Split dataset
     foldResults = []
-    skf = StratifiedKFold(n_splits = 5, shuffle = True, random_state = params['seed'])
-    rngFold = np.random.RandomState(params['seed'])
+    skf = StratifiedKFold(n_splits = args.folds, shuffle = True, random_state = params['seed'])
+    rngFold = np.random.default_rng(params['seed'])
     for trainIndex, testIndex in skf.split(dataset.X, dataset.Y):
         trainSet = Sample(dataset.X[trainIndex], dataset.Y[trainIndex]) 
         testSet = Sample(dataset.X[testIndex], dataset.Y[testIndex]) 
@@ -81,14 +81,13 @@ if __name__ == "__main__":
         if (args.std):
             if sparse.issparse(trainSet.X):
                 scaler = MaxAbsScaler()
-                print("Using MaxAbsScaler (sparse)")
+                print("Using MaxAbsScaler (sparse). Fold standardized")
             else:
                 scaler = StandardScaler()
-                print("Using StandardScaler (dense)")
+                print("Using StandardScaler (dense). Fold standardized")
 
             trainSet.X = scaler.fit_transform(trainSet.X)
             testSet.X = scaler.transform(testSet.X)
-            print(f"Fold standardized")
 
         # 2.3 Model for experiment
         if args.model == "SVC-linear":    
@@ -101,13 +100,13 @@ if __name__ == "__main__":
             model = combBinModel(
                 numSplits = args.splits,
                 baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
-                seed = rngFold.randint(0, 2**31 - 1)
+                seed = rngFold.integers(0, 2**31 - 1)
             )
         elif args.model == "Comb-LSVC-l2":
             model = combBinModel(
                 numSplits = args.splits,
                 baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),
-                seed = rngFold.randint(0, 2**31 - 1)
+                seed = rngFold.integers(0, 2**31 - 1)
             )
         else:
             raise ValueError("Unknown model!")
@@ -128,7 +127,7 @@ if __name__ == "__main__":
         tempResults = {
             'Acc(test)': accuracy_score(testSet.Y, myLabels),
             'AUC(test)': roc_auc_score(testSet.Y, model.decision_function(testSet.X)),
-            'Acc(Train)': accuracy_score(trainSet.Y, model.predict(trainSet.X)),
+            'Acc(train)': accuracy_score(trainSet.Y, model.predict(trainSet.X)),
 
             'nonzero_features': np.sum(np.abs(model.coef_) > 1e-6),
             'n_iter': model.n_iter_,

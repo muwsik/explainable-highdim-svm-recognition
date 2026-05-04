@@ -38,8 +38,9 @@ Thumbs.db
 # raw datasets
 datasets/gisette/gisette_scale_t
 datasets/gisette/gisette_scale_tr
-
 datasets/gisette/gisette_scale_t.npz
 datasets/gisette/gisette_scale_tr.npz
 
 datasets/RCV1/rcv1_train.binary.libsvm
+datasets/RCV1/rcv1_test.binary.libsvm
+datasets/RCV1/rcv1_test.binary.bz2

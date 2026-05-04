@@ -22,10 +22,10 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                "--data",       "datasets\\darwin\\darwin.npz",
+                "--data",       "datasets\\RCV1\\rcv1_test.binary.libsvm",
                 "--C",          "0.1",
                 "--model",      "Comb-LSVC-l1",
-                "--splits",     "15",
+                "--splits",     "1",
                 "--output",     "temp.xlsx",
                 "--no-std", 
             ]
