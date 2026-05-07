@@ -4,11 +4,19 @@ import time
 
 from sklearn.svm import LinearSVC
 
+from joblib import Parallel, delayed
+
 class combBinModel:
-    def __init__(self, numSplits, baseModel = lambda: LinearSVC(C = 1, penalty = 'l1', dual = False), seed = None):
+    def __init__(self,
+        numSplits, 
+        baseModel = lambda: LinearSVC(C = 1, penalty = 'l1', dual = False),
+        seed = None,
+        nJobs = -1
+    ):
         self.numSplits = numSplits
         self.baseModel = baseModel
 
+        self.nJobs = nJobs
         self.generator = np.random.default_rng(seed)
         self.subspaceIndex = None
         self.subspaceModels = None 
@@ -28,13 +36,21 @@ class combBinModel:
         self.subspaceModels = []
 
         # training by subspaces 
-        for tempSubspace in self.subspaceIndex:
+        def trainSubspace(tempSubspace):
             timeStartTrain = time.time()
             tempModel = self.baseModel()
             tempModel.fit(X[:, tempSubspace], Y)
             timeEndTrain = time.time()
 
-            self.subspaceModels.append([tempModel, timeEndTrain - timeStartTrain])
+            return (tempModel, timeEndTrain - timeStartTrain)
+
+        self.subspaceModels = Parallel(
+            n_jobs = self.nJobs,
+            backend = "loky"
+        )(
+            delayed(trainSubspace)(tempSubspace)
+            for tempSubspace in self.subspaceIndex
+        )
 
         # combining general solution as an average of subspace particular models
         for tempModel, _ in self.subspaceModels:
