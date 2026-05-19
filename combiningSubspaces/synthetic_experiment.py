@@ -1,0 +1,181 @@
+import argparse
+import os
+
+import numpy as np
+from scipy import sparse
+import pandas as pd
+import time
+
+from sklearn.svm import SVC, LinearSVC
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.preprocessing import StandardScaler, MaxAbsScaler
+from sklearn.model_selection import StratifiedKFold
+
+from combiningSubspaces.combinedBinModel import combBinModel
+from dataGenerator.sample import Sample
+
+
+# for output of service information
+_verbose = False
+
+
+if __name__ == "__main__":
+    # 1. Configuration command line arguments
+    parser = argparse.ArgumentParser()
+
+    # 1.1 General experiment parameters
+    parser.add_argument("--data", type = str, required = True,
+        help = "Path to full dataset (.npz)")
+    parser.add_argument("--output", type = str, required = True,
+        help = "Output Excel file")
+    parser.add_argument("--model", type = str, required = True,
+        choices=  ["SVC-linear", "Comb-LSVC-l1", "Comb-LSVC-l2"],
+        help = "Model type")
+    parser.add_argument("--train-size", type = int, required = True,
+        help = "Objects number on train")    
+    parser.add_argument("--skf-seed", type = int, required = True,
+        help = "")    
+    parser.add_argument("--processes", type = int, default = 4,
+        help = "Number of parallel processes for Comb-LSVC method")   
+    parser.add_argument("--no-std", action = "store_false", dest = "std",
+        help = "Disable standardization") 
+
+    # 1.2 Base SVM parameters
+    parser.add_argument("--C", type = float, default = 1.0,
+        help = "Regularization SVM parameter")
+
+    # 1.3 CombLinSVM model parameters
+    parser.add_argument("--splits", type = int, default = None,
+        help = "Number of subspaces (for Comb-LSVC-l1, Comb-LSVC-l2)")
+
+    # 1.Final 
+    args = parser.parse_args()
+
+    # For parameters that can be equal to None
+    check = lambda x: x if x is not None else "---"
+    
+    params = {
+        # general        
+        'id': time.time(),
+        'seed': np.random.randint(0, 2**31 - 1),
+        'skf-seed': args.skf_seed,
+        'data': os.path.basename(args.data),
+        'train-size': args.train_size,
+        'processes': args.processes,
+        'norm': args.std,
+        'model': args.model,
+        'C': args.C,
+
+        # CombLinSVM
+        'splits': check(args.splits)
+    }
+    print(f"\nExperiment params: {params}")
+
+    # 2. Main experiment logic
+    # 2.1 Dataset load
+    dataset = Sample.fromFile(args.data)
+    print(f"Loded dataset '{args.data}'. Sparse: {sparse.issparse(dataset.X)}")
+    nObj, _ = dataset.X.shape
+    
+    # 2.2 Split dataset
+    foldResults = []
+    folds = int(nObj / args.train_size)
+    skf = StratifiedKFold(n_splits = folds, shuffle = True, random_state = args.skf_seed)
+    rngFold = np.random.default_rng(params['seed'])
+    for trainIndex, testIndex in skf.split(dataset.X, dataset.Y):
+        # switch places, for a shortage of objects for training in accordance with the args.fraction
+        testSet = Sample(dataset.X[trainIndex], dataset.Y[trainIndex]) 
+        trainSet  = Sample(dataset.X[testIndex], dataset.Y[testIndex]) 
+
+        if (args.std):
+            if sparse.issparse(trainSet.X):
+                scaler = MaxAbsScaler()
+                print("Using MaxAbsScaler (sparse). Fold standardized")
+            else:
+                scaler = StandardScaler()
+                print("Using StandardScaler (dense). Fold standardized")
+
+            trainSet.X = scaler.fit_transform(trainSet.X)
+            testSet.X = scaler.transform(testSet.X)
+
+        # 2.3 Model for experiment
+        if args.model == "SVC-linear":    
+            model = SVC(
+                C = args.C,
+                kernel = 'linear',
+                verbose = _verbose
+            )
+        elif args.model == "Comb-LSVC-l1":
+            model = combBinModel(
+                numSplits = args.splits,
+                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
+                seed = rngFold.integers(0, 2**31 - 1)
+            )
+        elif args.model == "Comb-LSVC-l2":
+            model = combBinModel(
+                numSplits = args.splits,
+                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),
+                seed = rngFold.integers(0, 2**31 - 1)
+            )
+        else:
+            raise ValueError("Unknown model!")
+
+        # 2.4 Training
+        print(f"Training model on fold {args.model}")
+        timeTrain = -time.time()
+        model.fit(trainSet.X, trainSet.Y)
+        timeTrain += time.time()
+
+        # 2.5 Predicting
+        print(f"Predicting on fold...")
+        timePredict = -time.time()
+        myLabels = model.predict(testSet.X)
+        timePredict += time.time()
+
+        # 2.6 Quality measures    
+        tempResults = {
+            'Acc(test)': accuracy_score(testSet.Y, myLabels),
+            #'AUC(test)': roc_auc_score(testSet.Y, model.decision_function(testSet.X)),
+            #'Acc(train)': accuracy_score(trainSet.Y, model.predict(trainSet.X)),
+
+            'nonzero_features': np.sum(np.abs(model.coef_) > 1e-6),
+            'n_iter': model.n_iter_,
+            
+            'time(train)': timeTrain,
+            'time(predict)': timePredict,
+        }
+
+        foldResults.append(tempResults)
+
+    # 2.Final 
+    meanResultsCV = {
+        k: np.mean([fr[k] for fr in foldResults])
+        for k in foldResults[0]
+    }
+
+    # 3. Writing results to Excel file
+    df = pd.DataFrame([{**params, **meanResultsCV}])
+    if os.path.exists(args.output):
+        fileDF = pd.read_excel(args.output, sheet_name = "runs")
+        df = pd.concat([fileDF, df], ignore_index = True)
+
+    aggResults = {}
+    metricCols = list(meanResultsCV.keys())
+    aggResults["runs"] = (metricCols[0], "count")
+    for col in metricCols:        
+        aggResults[col + "_mean"] = (col, "mean")        
+    for col in metricCols:
+        aggResults[col + "_std"] = (col, "std")    
+
+    paramCols = [
+        c for c in df.columns
+            if c not in metricCols + ['id', 'seed', 'data', 'skf-seed']
+    ]
+    grouped = df.groupby(paramCols)
+    aggDF = grouped.agg(**aggResults).reset_index()
+
+    with pd.ExcelWriter(args.output, engine = "openpyxl") as writer:
+        df.to_excel(writer, sheet_name = "runs", index = False)
+        aggDF.to_excel(writer, sheet_name = "aggregated", index = False)
+
+    print(f"Results write in file '{os.path.basename(args.output)}'\n")

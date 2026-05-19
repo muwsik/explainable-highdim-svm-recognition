@@ -44,12 +44,9 @@ class combBinModel:
 
             return (tempModel, timeEndTrain - timeStartTrain)
 
-        self.subspaceModels = Parallel(
-            n_jobs = self.nJobs,
-            backend = "loky"
-        )(
-            delayed(trainSubspace)(tempSubspace)
-            for tempSubspace in self.subspaceIndex
+        parallelExecutor = Parallel(n_jobs = self.nJobs, backend = "loky")        
+        self.subspaceModels = parallelExecutor(
+            delayed(trainSubspace)(tempSubspace) for tempSubspace in self.subspaceIndex
         )
 
         # combining general solution as an average of subspace particular models

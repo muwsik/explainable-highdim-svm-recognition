@@ -22,7 +22,7 @@
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "args": [
-                "--data",       "datasets\\RCV1\\rcv1_test.binary.libsvm",
+                "--data",       "D:\\datasets\\sync-kit-10k-f1000-i1000-r0-l0.npz",
                 "--C",          "0.1",
                 "--model",      "Comb-LSVC-l1",
                 "--splits",     "1",
