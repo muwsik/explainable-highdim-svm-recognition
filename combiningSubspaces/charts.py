@@ -5,7 +5,7 @@ import seaborn as sns
 # -------------------------------------------------
 # 1. Load aggregated sheet
 # -------------------------------------------------
-file = r"D:\Cloud\SVM\s1_synthetic1-10k-f1000-i1000-r0-l0.npz.xlsx"
+file = r"D:\Cloud\SVM\s4_synthetic4-10k-f1000-i500-r250-l250.npz.xlsx"
 
 df = pd.read_excel(
     file,
@@ -18,11 +18,11 @@ df = pd.read_excel(
 metric_mean = "Acc(test)_mean"
 metric_std = "Acc(test)_std"
 
-model_name = "Comb-LSVC-l2"
+model_name = "Comb-LSVC-l1"
 
-train_sizes = [250, 500, 1000]
+train_sizes = [50, 100, 150, 200, 250, 500, 1000]
 
-save_file = f"D:\Cloud\SVM\charts\heatmap_{model_name}.png"
+save_file = f"D:\Cloud\SVM\s4\heatmap_{model_name}.png"
 
 # -------------------------------------------------
 # 3. Filter dataframe
@@ -57,15 +57,15 @@ for ax, train_size in zip(axes, train_sizes):
 
     # mean values
     pivot_mean = temp.pivot(
-        index="C",
-        columns="splits",
+        index="splits",
+        columns="C",
         values=metric_mean
     ) * 100
 
     # std values
     pivot_std = temp.pivot(
-        index="C",
-        columns="splits",
+        index="splits",
+        columns="C",
         values=metric_std
     ) * 100
 
@@ -102,8 +102,8 @@ for ax, train_size in zip(axes, train_sizes):
 
     ax.set_title(f"Train size = {train_size}")
 
-    ax.set_xlabel("Splits")
-    ax.set_ylabel("C")
+    ax.set_xlabel("C")
+    ax.set_ylabel("Splits")
 
 # -------------------------------------------------
 # 6. Global title
