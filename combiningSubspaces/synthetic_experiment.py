@@ -145,13 +145,15 @@ if __name__ == "__main__":
             'time(predict)': timePredict,
         }
 
+        print(f"{tempResults['Acc(test)']}")
         foldResults.append(tempResults)
 
     # 2.Final 
     meanResultsCV = {
         k: np.mean([fr[k] for fr in foldResults])
         for k in foldResults[0]
-    }
+    }    
+    meanResultsCV['Acc(test)_cv_std'] = np.std([fr['Acc(test)'] for fr in foldResults])
 
     # 3. Writing results to Excel file
     df = pd.DataFrame([{**params, **meanResultsCV}])

@@ -31,6 +31,26 @@
             ]
         },
         {
+            "name": "Debug synthetic experiment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "combiningSubspaces/synthetic_experiment.py",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [
+                "--data",       "D:\\Muws\\datasets\\synthetic1-10k-f1000-i1000-r0-l0.npz",
+                "--C",          "0.1",
+                "--model",      "Comb-LSVC-l1",
+                "--train-size", "5000",
+                "--skf-seed",   "123456",
+                "--splits",     "1",
+                "--output",     "temp.xlsx",
+                "--no-std", 
+            ]
+        },
+        {
             "name": "Debug split experiment",
             "type": "debugpy",
             "request": "launch",
