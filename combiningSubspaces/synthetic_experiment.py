@@ -107,14 +107,16 @@ if __name__ == "__main__":
             )
         elif args.model == "Comb-LSVC-l1":
             model = combBinModel(
+                nJobs = args.processes,
                 numSplits = args.splits,
-                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose),
+                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l1', dual = False, verbose = _verbose, max_iter=2500),
                 seed = rngFold.integers(0, 2**31 - 1)
             )
         elif args.model == "Comb-LSVC-l2":
             model = combBinModel(
+                nJobs = args.processes,
                 numSplits = args.splits,
-                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose),
+                baseModel = lambda: LinearSVC(C = args.C, penalty = 'l2', dual = 'auto', verbose = _verbose, max_iter=2500),
                 seed = rngFold.integers(0, 2**31 - 1)
             )
         else:
@@ -145,8 +147,8 @@ if __name__ == "__main__":
             'time(predict)': timePredict,
         }
 
-        print(f"{tempResults['Acc(test)']}")
         foldResults.append(tempResults)
+        break
 
     # 2.Final 
     meanResultsCV = {

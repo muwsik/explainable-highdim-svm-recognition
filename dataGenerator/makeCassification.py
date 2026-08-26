@@ -6,10 +6,10 @@ import numpy as np
 from dataGenerator.sample import Sample
 
 # параметры
-n_samples = 10000
-n_features = 1000
-n_informative = 750
-n_redundantint = 0
+n_samples = 25000
+n_features = 5000
+n_informative = 4000
+n_redundantint = 500
 
 # 
 X, y = make_classification(
@@ -29,7 +29,7 @@ y =  np.where(y > 0, 1, -1)
 namePart = f"{n_samples//1000}k-f{n_features}-i{n_informative}-r{n_redundantint}-l{n_features - n_informative - n_redundantint}"
 
 trainSample = Sample(X, y)
-trainSample.saveBin(rf"D:\Muws\datasets\synthetic9-{namePart}.npz")
+trainSample.saveBin(rf"D:\Cloud\SVM\dataset\synthetic13-{namePart}.npz")
 
 
 # X_train, X_test, y_train, y_test = train_test_split(

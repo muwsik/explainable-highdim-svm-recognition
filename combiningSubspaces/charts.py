@@ -1,13 +1,13 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # -------------------------------------------------
 # 1. Load aggregated sheet
 # -------------------------------------------------
-fileID = "s2.3"
+fileID = "s3.1"
 
-file = r"D:\Muws\svm\s2.3_synthetic9-10k-f1000-i750-r0-l250.npz.xlsx"
+file = r"D:\Cloud\SVM\charts\s3.1_synthetic6-10k-f1000-i500-r250-l250.npz.xlsx"
 
 df = pd.read_excel(
     file,
@@ -19,12 +19,10 @@ df = pd.read_excel(
 # -------------------------------------------------
 metric_mean = "Acc(test)_mean"
 metric_std = "Acc(test)_cv_std_mean"
-# metric_std = "Acc(test)_std"
 
-model_name = "Comb-LSVC-l2"
+model_name = "Comb-LSVC-l1"
 
 train_sizes = [50, 100, 150, 200, 250, 500]
-
 
 # -------------------------------------------------
 # 3. Filter dataframe
@@ -36,43 +34,40 @@ df_line = df[
     ])
 ]
 
-
 df = df[df["model"] == model_name]
 
 df = df.sort_values(["train-size", "C", "splits"])
 
 # -------------------------------------------------
-# 4. Figure
+# 4. Global color scale
 # -------------------------------------------------
-fig, axes = plt.subplots(
-    1,
-    len(train_sizes),
-    figsize=(5 * len(train_sizes), 5)
-)
-
-plt.subplots_adjust(
-    wspace=0.3
-)
-
-# общий диапазон цветов
 vmin = df[metric_mean].min() * 100
 vmax = df[metric_mean].max() * 100
 
 # -------------------------------------------------
 # 5. Heatmaps
 # -------------------------------------------------
-for ax, train_size in zip(axes, train_sizes):
+fig = make_subplots(
+    rows=1,
+    cols=len(train_sizes),
+    subplot_titles=[
+        f"Train size = {ts}"
+        for ts in train_sizes
+    ],
+
+    horizontal_spacing=0.01
+)
+
+for idx, train_size in enumerate(train_sizes, start=1):
 
     temp = df[df["train-size"] == train_size]
 
-    # mean values
     pivot_mean = temp.pivot(
         index="splits",
         columns="C",
         values=metric_mean
     ) * 100
 
-    # std values
     pivot_std = temp.pivot(
         index="splits",
         columns="C",
@@ -80,63 +75,100 @@ for ax, train_size in zip(axes, train_sizes):
     ) * 100
 
     # annotations
-    annot = pivot_mean.copy().astype(str)
+    text = []
 
     for i in range(pivot_mean.shape[0]):
+
+        row = []
+
         for j in range(pivot_mean.shape[1]):
 
             mean_val = pivot_mean.iloc[i, j]
             std_val = pivot_std.iloc[i, j]
 
-            annot.iloc[i, j] = (
-                f"{mean_val:.1f}\n±{std_val:.1f}"
+            row.append(
+                f"{mean_val:.1f}<br>±{std_val:.1f}"
             )
 
-    sns.heatmap(
-        pivot_mean,
-        ax=ax,
-        annot=annot,
-        fmt="",
-        cmap="viridis",
+        text.append(row)
 
-        vmin=vmin,
-        vmax=vmax,
+    heatmap = go.Heatmap(
 
-        square=True,
+        z=pivot_mean.values,
 
-        linewidths=0.5,
-        linecolor='gray',
+        x=pivot_mean.columns.astype(str),
+        y=pivot_mean.index.astype(str),
 
-        cbar=False
+        text=text,
+        texttemplate="%{text}",
+
+        colorscale="Viridis",
+
+        zmin=vmin,
+        zmax=vmax,
+
+        showscale=False,
+
+        hovertemplate=
+            "C=%{x}<br>" +
+            "Splits=%{y}<br>" +
+            "Accuracy=%{z:.2f}%<extra></extra>"
     )
 
-    ax.set_title(f"Train size = {train_size}")
+    fig.add_trace(
+        heatmap,
+        row=1,
+        col=idx
+    )
 
-    ax.set_xlabel("C")
-    ax.set_ylabel("Splits")
+    fig.update_xaxes(        
+        constrain="domain",
+        range=[-0.5, len(pivot_mean.columns) - 0.5],
+        row=1,
+        col=idx
+    )
+
+    fig.update_yaxes(
+        constrain="domain",
+        range=[len(pivot_mean.index) - 0.5, -0.5],
+        row=1,
+        col=idx
+    )
 
 # -------------------------------------------------
-# 6. Global title
+# 6. Layout
 # -------------------------------------------------
-fig.suptitle(
-    f"{model_name} — Accuracy (%)",
-    fontsize=18
+fig.update_layout(
+
+    title=f"{model_name} — Accuracy (%)",
+
+    height=500,
+    width=300 * len(train_sizes),
+
+    template="plotly_white"
 )
+
+# квадратные клетки
+for i in range(1, len(train_sizes) + 1):
+
+    fig.update_yaxes(
+        scaleanchor=f"x{i}",
+        scaleratio=1,
+        row=1,
+        col=i
+    )
 
 # -------------------------------------------------
 # 7. Save
 # -------------------------------------------------
-plt.savefig(
-    f"D:\Muws\svm\charts\{fileID}_heatmap_{model_name}.png",
-    dpi=300,
-    bbox_inches="tight"
+fig.write_html(
+    rf"D:\Cloud\SVM\charts\\{fileID}_heatmap_{model_name}.html"
 )
 
-
-print(f"Figure heatmap saved")
+print("Heatmap saved")
 
 # -------------------------------------------------
-# 8. Line plot for fixed C and different train sizes
+# 8. Line plot
 # -------------------------------------------------
 train_colors = {
     50: "blue",
@@ -147,27 +179,23 @@ train_colors = {
     500: "brown",
     1000: "darkmagenta"
 }
-selected_C = 10.0
 
-# только нужный C
+selected_C = 1
+
 temp_df = df_line[
     df_line["C"] == selected_C
 ].copy()
 
-# тип регуляризации
 temp_df["penalty"] = temp_df["model"].apply(
     lambda x: "l1" if "l1" in x.lower() else "l2"
 )
 
-# figure
-plt.figure(figsize=(10, 6))
+fig_line = go.Figure()
 
-# все train sizes
 all_train_sizes = sorted(
     temp_df["train-size"].unique()
 )
 
-# линии
 for penalty in ["l1", "l2"]:
 
     for train_size in all_train_sizes:
@@ -177,56 +205,349 @@ for penalty in ["l1", "l2"]:
             (temp_df["train-size"] == train_size)
         ].sort_values("splits")
 
-        # стили для l1/l2
         if penalty == "l1":
-            linestyle = "--"
-            marker = "s"
+            dash = "dash"
+            marker_symbol = "square"
         else:
-            linestyle = "-"
-            marker = "o"
+            dash = "solid"
+            marker_symbol = "circle"
 
-        plt.plot(
-            temp["splits"],
+        fig_line.add_trace(
 
-            temp[metric_mean] * 100,
+            go.Scatter(
 
-            #yerr=temp[metric_std] * 100,
+                x=temp["splits"],
+                y=temp[metric_mean] * 100,
 
-            color=train_colors[train_size],
+                mode="lines+markers",
 
-            linestyle=linestyle,
-            marker=marker,
+                line=dict(
+                    color=train_colors[train_size],
+                    dash=dash,
+                    width=2
+                ),
 
-            linewidth=1,
-            markersize=3,
+                marker=dict(
+                    symbol=marker_symbol,
+                    size=6
+                ),
 
-            #capsize=2,
+                name=f"{penalty} train={train_size}",
 
-            label=f"{penalty} train={train_size}"
+                hovertemplate=
+                    "Splits=%{x}<br>" +
+                    "Accuracy=%{y:.2f}%<extra></extra>"
+            )
         )
 
-# оформление
-plt.title(
-    f"Accuracy vs Splits (C={selected_C})"
+# -------------------------------------------------
+# 9. Layout
+# -------------------------------------------------
+fig_line.update_layout(
+
+    title=f"Accuracy vs Splits (C={selected_C})",
+
+    xaxis_title="Splits",
+    yaxis_title="Accuracy (%)",
+
+    template="plotly_white",
+
+    width=1000,
+    height=600
 )
 
-plt.xlabel("Splits")
-plt.ylabel("Accuracy (%)")
-
-plt.grid(True)
-
-plt.legend(
-    fontsize=8,
-    ncol=2
-)
-
-# сохранение
-plt.savefig(
-    f"D:\\Muws\\svm\\charts\\{fileID}_line_C{selected_C}_splits.png",
-    dpi=300,
-    bbox_inches="tight"
+# -------------------------------------------------
+# 10. Save
+# -------------------------------------------------
+fig_line.write_html(
+    rf"D:\Cloud\SVM\charts\{fileID}_line_C{selected_C}_splits.html"
 )
 
 print("Line plot saved")
 
-plt.show()
+# -------------------------------------------------
+# TRAIN TIME + ITERATIONS + ACCURACY HEATMAPS
+# -------------------------------------------------
+
+train_size_fixed = 2500
+
+model_name = "Comb-LSVC-l1"
+
+# -------------------------------------------------
+# FILTER
+# -------------------------------------------------
+df_time = df_line[
+    (df_line["train-size"] == train_size_fixed) &
+    (df_line["model"] == model_name)
+].copy()
+
+# -------------------------------------------------
+# GLOBAL RANGES
+# -------------------------------------------------
+time_vmin = df_time["time(train)_mean"].min()
+time_vmax = df_time["time(train)_mean"].max()
+
+iter_vmin = df_time["n_iter_mean"].min()
+iter_vmax = df_time["n_iter_mean"].max()
+
+acc_vmin = df_time["Acc(test)_mean"].min() * 100
+acc_vmax = df_time["Acc(test)_mean"].max() * 100
+
+# -------------------------------------------------
+# SUBPLOTS
+# -------------------------------------------------
+fig_time = make_subplots(
+
+    rows=1,
+    cols=3,
+
+    subplot_titles=[
+        "Train time",
+        "Iterations",
+        "Accuracy"
+    ],
+
+    horizontal_spacing=0.05
+)
+
+# -------------------------------------------------
+# PIVOTS
+# -------------------------------------------------
+pivot_time_mean = df_time.pivot(
+    index="splits",
+    columns="processes",
+    values="time(train)_mean"
+)
+
+pivot_time_std = df_time.pivot(
+    index="splits",
+    columns="processes",
+    values="time(train)_std"
+)
+
+pivot_iter = df_time.pivot(
+    index="splits",
+    columns="processes",
+    values="n_iter_mean"
+)
+
+pivot_acc_mean = df_time.pivot(
+    index="splits",
+    columns="processes",
+    values="Acc(test)_mean"
+) * 100
+
+pivot_acc_std = df_time.pivot(
+    index="splits",
+    columns="processes",
+    values="Acc(test)_std"
+) * 100
+
+# -------------------------------------------------
+# TIME TEXT
+# -------------------------------------------------
+text_time = []
+
+for i in range(pivot_time_mean.shape[0]):
+
+    row = []
+
+    for j in range(pivot_time_mean.shape[1]):
+
+        mean_val = pivot_time_mean.iloc[i, j]
+        std_val = pivot_time_std.iloc[i, j]
+
+        row.append(
+            f"{mean_val:.1f}<br>±{std_val:.1f}"
+        )
+
+    text_time.append(row)
+
+# -------------------------------------------------
+# TIME HEATMAP
+# -------------------------------------------------
+heatmap_time = go.Heatmap(
+
+    z=pivot_time_mean.values,
+
+    x=pivot_time_mean.columns.astype(str),
+    y=pivot_time_mean.index.astype(str),
+
+    text=text_time,
+    texttemplate="%{text}",
+
+    colorscale="Viridis",
+
+    zmin=time_vmin,
+    zmax=time_vmax,
+
+    showscale=False,
+
+    hovertemplate=
+        "Processes=%{x}<br>" +
+        "Splits=%{y}<br>" +
+        "Time=%{z:.3f}s<extra></extra>"
+)
+
+fig_time.add_trace(
+    heatmap_time,
+    row=1,
+    col=1
+)
+
+# -------------------------------------------------
+# ITER TEXT
+# -------------------------------------------------
+text_iter = []
+
+for i in range(pivot_iter.shape[0]):
+
+    row = []
+
+    for j in range(pivot_iter.shape[1]):
+
+        val = pivot_iter.iloc[i, j]
+
+        row.append(
+            f"{val:.0f}"
+        )
+
+    text_iter.append(row)
+
+# -------------------------------------------------
+# ITER HEATMAP
+# -------------------------------------------------
+heatmap_iter = go.Heatmap(
+
+    z=pivot_iter.values,
+
+    x=pivot_iter.columns.astype(str),
+    y=pivot_iter.index.astype(str),
+
+    text=text_iter,
+    texttemplate="%{text}",
+
+    colorscale="Viridis",
+
+    zmin=iter_vmin,
+    zmax=iter_vmax,
+
+    showscale=False,
+
+    hovertemplate=
+        "Processes=%{x}<br>" +
+        "Splits=%{y}<br>" +
+        "Iterations=%{z:.0f}<extra></extra>"
+)
+
+fig_time.add_trace(
+    heatmap_iter,
+    row=1,
+    col=2
+)
+
+# -------------------------------------------------
+# ACCURACY TEXT
+# -------------------------------------------------
+text_acc = []
+
+for i in range(pivot_acc_mean.shape[0]):
+
+    row = []
+
+    for j in range(pivot_acc_mean.shape[1]):
+
+        mean_val = pivot_acc_mean.iloc[i, j]
+        std_val = pivot_acc_std.iloc[i, j]
+
+        row.append(
+            f"{mean_val:.1f}<br>±{std_val:.1f}"
+        )
+
+    text_acc.append(row)
+
+# -------------------------------------------------
+# ACCURACY HEATMAP
+# -------------------------------------------------
+heatmap_acc = go.Heatmap(
+
+    z=pivot_acc_mean.values,
+
+    x=pivot_acc_mean.columns.astype(str),
+    y=pivot_acc_mean.index.astype(str),
+
+    text=text_acc,
+    texttemplate="%{text}",
+
+    colorscale="Viridis",
+
+    zmin=acc_vmin,
+    zmax=acc_vmax,
+
+    showscale=False,
+
+    hovertemplate=
+        "Processes=%{x}<br>" +
+        "Splits=%{y}<br>" +
+        "Accuracy=%{z:.2f}%<extra></extra>"
+)
+
+fig_time.add_trace(
+    heatmap_acc,
+    row=1,
+    col=3
+)
+
+# -------------------------------------------------
+# AXES
+# -------------------------------------------------
+for col in [1, 2, 3]:
+
+    fig_time.update_xaxes(
+        title_text="Processes",
+        constrain="domain",
+
+        row=1,
+        col=col
+    )
+
+    fig_time.update_yaxes(
+        title_text="Splits",
+        constrain="domain",
+
+        autorange="reversed",
+
+        row=1,
+        col=col
+    )
+
+# -------------------------------------------------
+# LAYOUT
+# -------------------------------------------------
+fig_time.update_layout(
+
+    title= "25k-f5000-i4000-r500-l500 "
+        f"{model_name} "
+        f"(train-size={train_size_fixed})",
+
+    width=1200,
+    height=400,
+
+    template="plotly_white",
+
+    margin=dict(
+        l=10,
+        r=10,
+        t=50,
+        b=10
+    )
+)
+
+# -------------------------------------------------
+# SAVE
+# -------------------------------------------------
+fig_time.write_html(
+    rf"D:\Cloud\SVM\charts\{fileID}_time_iter_acc_heatmap.html"
+)
+
+print("Train time + iterations + accuracy heatmaps saved")

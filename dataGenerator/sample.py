@@ -120,3 +120,19 @@ class Sample:
             pass
         
         raise ValueError(f"Unknown or unsupported file format: {filename}")
+    
+if __name__ == "__main__":
+    
+    tempPath = r"D:\Cloud\SVM\dataset\synthetic12-25k-f2500-i1500-r500-l500.npz"
+
+    dataset = Sample.fromFile(tempPath)
+    print(f"Loded dataset X:{dataset.X.shape} Y:{dataset.Y.shape}")
+    
+    from sklearn.svm import LinearSVC
+    from sklearn.metrics import accuracy_score
+
+    model = LinearSVC(C = 10, penalty = 'l1', dual = False, verbose = True)
+
+    model.fit(dataset.X, dataset.Y)
+
+    print(accuracy_score(dataset.Y, model.predict(dataset.X)))

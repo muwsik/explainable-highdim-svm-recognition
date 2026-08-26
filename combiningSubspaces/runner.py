@@ -6,13 +6,13 @@ import numpy as np
 print(f"---START---")
 
 ## --- synthetic_experiment ---
-dataFile = r"D:\Muws\datasets\synthetic9-10k-f1000-i750-r0-l250.npz"
-output = rf"D:\Muws\svm\s2.3_{os.path.basename(dataFile)}.xlsx"
+dataFile = r"D:\Cloud\SVM\dataset\synthetic13-25k-f5000-i4000-r500-l500.npz"
+output = rf"D:\Cloud\SVM\s13_{os.path.basename(dataFile)}.xlsx"
 
-C = [0.1, 1, 10]
-splits = [1, 2, 5, 10, 25, 50, 100]
-subtype = ['l1', 'l2']
-tr_size = [50, 100, 150, 200, 250, 500]
+C = [1]
+splits = [1, 2, 4, 8, 16, 32]
+subtype = ['l1']
+tr_size = [1, 2, 4, 8]
 
 skf_seed = np.random.randint(0, 2**31 - 1)
 for _C, _splits, _subtype, _tr_size in product(C, splits, subtype, tr_size):
@@ -21,7 +21,8 @@ for _C, _splits, _subtype, _tr_size in product(C, splits, subtype, tr_size):
         "--data", dataFile,
         "--C", str(_C),
         "--model", f"Comb-LSVC-{_subtype}",
-        "--train-size", str(_tr_size),
+        "--train-size", str(2500),
+        "--processes", str(_tr_size),
         "--splits", str(_splits),
         "--skf-seed", str(skf_seed),
         "--output", output,
