@@ -2,7 +2,7 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-size = "20k"  # "20k", "30k", "40k"
+size = "40k"  # "20k", "30k", "40k"
 f = r"D:\Projects\explainable-highdim-svm-recognition\charts\res002-3_aggregated.xlsx"
 out = rf"D:\Projects\explainable-highdim-svm-recognition\charts\time_vs_processes_{size}.svg"
 
