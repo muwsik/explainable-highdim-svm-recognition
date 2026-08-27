@@ -2,394 +2,60 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-
-# ============================================================
-# Файл
-# ============================================================
-
-FILE = r"D:\Projects\explainable-highdim-svm-recognition\charts\res002_averaged.xlsx"
-
-
-# ============================================================
-# Настройки
-# ============================================================
-
-sizes = [20000, 30000, 40000]
-
-size_labels = {
-    20000: "20k",
-    30000: "30k",
-    40000: "40k"
-}
-
-HP_COLOR = "#1f77b4"
-SVM_COLOR = "#2ca02c"
-
-
-# ============================================================
-# Регуляризация
-# ============================================================
-
-def get_regularization(model):
-
-    model = str(model).lower()
-
-    if "penalty='l1'" in model or 'penalty="l1"' in model:
-        return "L1"
-
-    return "L2"
-
-
-# ============================================================
-# HP-DSC
-# ============================================================
-
-hp_sheets = {
-    20000: "HP-DSC-20k",
-    30000: "HP-DSC-30k",
-    40000: "HP-DSC-40k"
-}
-
-hp = []
-
-for size, sheet in hp_sheets.items():
-
-    df = pd.read_excel(
-        FILE,
-        sheet_name=sheet
-    )
-
-    # Последовательная реализация
-    df = df[df["n_proc"] == 1].copy()
-
-    df["train_size"] = size
-
-    df["regularization"] = df["model"].apply(
-        get_regularization
-    )
-
-    hp.append(df)
-
-
-hp = pd.concat(
-    hp,
-    ignore_index=True
-)
-
-
-# ============================================================
-# SVM
-# ============================================================
-
-svm = pd.read_excel(
-    FILE,
-    sheet_name="SVM"
-)
-
-svm["train_size"] = svm["nTr_obj"]
-
-svm["regularization"] = svm["model"].apply(
-    get_regularization
-)
-
-
-# ============================================================
-# Рисунок 2
-# ============================================================
-
-fig = make_subplots(
-
-    rows=2,
-    cols=3,
-
-    # L1 / L2 по строкам,
-    # 20k / 30k / 40k по столбцам
-    subplot_titles=[
-        "20k", "30k", "40k",
-        "20k", "30k", "40k"
-    ],
-
-    vertical_spacing=0.12,
-    horizontal_spacing=0.07
-)
-
-
-# ------------------------------------------------------------
-# Добавляем подписи L1 / L2 слева от строк
-# ------------------------------------------------------------
-
-fig.add_annotation(
-    text="<b>L1</b>",
-    x=-0.065,
-    y=0.75,
-    xref="paper",
-    yref="paper",
-    textangle=-90,
-    showarrow=False,
-    font=dict(size=16)
-)
-
-fig.add_annotation(
-    text="<b>L2</b>",
-    x=-0.065,
-    y=0.25,
-    xref="paper",
-    yref="paper",
-    textangle=-90,
-    showarrow=False,
-    font=dict(size=16)
-)
-
-
-# ============================================================
-# Заполняем панели
-# ============================================================
-
-for row, regularization in enumerate(
-    ["L1", "L2"],
-    start=1
-):
-
-    for col, size in enumerate(
-        sizes,
-        start=1
-    ):
-
-        # ----------------------------------------------------
-        # HP-DSC
-        # ----------------------------------------------------
-
-        hp_data = (
-            hp[
-                (hp["train_size"] == size) &
-                (hp["regularization"] == regularization)
-            ]
-            .sort_values("n_splits")
-        )
-
-        fig.add_trace(
-
-            go.Scatter(
-
-                x=hp_data["n_splits"],
-                y=hp_data["acc_tst_mean"],
-
-                mode="lines",
-
-                name="HP-DSC",
-
-                legendgroup="HP-DSC",
-
-                showlegend=(
-                    row == 1 and col == 1
-                ),
-
-                line=dict(
-                    color=HP_COLOR,
-                    width=2
-                ),
-
-                error_y=dict(
-                    type="data",
-                    array=hp_data["acc_tst_sd"].fillna(0),
-
-                    visible=True,
-
-                    color=HP_COLOR,
-
-                    thickness=1.5,
-                    width=6
-                )
-            ),
-
-            row=row,
-            col=col
-        )
-
-
-        # ----------------------------------------------------
-        # SVM
-        # ----------------------------------------------------
-
-        svm_data = svm[
-            (svm["train_size"] == size) &
-            (svm["regularization"] == regularization)
-        ]
-
-        if len(svm_data) > 0:
-
-            svm_accuracy = svm_data[
-                "acc_mean"
-            ].iloc[0]
-
-            # Берём диапазон n_splits HP-DSC,
-            # чтобы линия точно проходила через весь график.
-            x_min = hp_data["n_splits"].min()
-            x_max = hp_data["n_splits"].max()
-
-            fig.add_trace(
-
-                go.Scatter(
-
-                    x=[
-                        x_min,
-                        x_max
-                    ],
-
-                    y=[
-                        svm_accuracy,
-                        svm_accuracy
-                    ],
-
-                    mode="lines",
-
-                    name="SVM",
-
-                    legendgroup="SVM",
-
-                    showlegend=(
-                        row == 1 and col == 1
-                    ),
-
-                    line=dict(
-                        color=SVM_COLOR,
-                        width=1.8,
-                        dash="dash"
-                    )
-                ),
-
-                row=row,
-                col=col
-            )
-
-
-        # ----------------------------------------------------
-        # Оси
-        # ----------------------------------------------------
-
-        fig.update_xaxes(
-            title="n_splits",
-            row=row,
-            col=col
-        )
-
-        fig.update_yaxes(
-            title="Test accuracy" if col == 1 else None,
-            tickformat=".3f",
-            row=row,
-            col=col
-        )
-
-
-# ============================================================
-# Общий диапазон Y
-# ============================================================
-
-# Чтобы L1 и L2 и все размеры можно было честно сравнивать,
-# используем один диапазон Y для всего рисунка.
-
-hp_values = hp[
-    "acc_tst_mean"
-].dropna()
-
-svm_values = svm[
-    "acc_mean"
-].dropna()
-
-all_values = pd.concat(
-    [
-        hp_values,
-        svm_values
-    ]
-)
-
-y_min = all_values.min()
-y_max = all_values.max()
-
-padding = (
-    y_max - y_min
-) * 0.08
-
-y_min -= padding
-y_max += padding
-
-
-fig.update_yaxes(
-    range=[
-        y_min,
-        y_max
-    ]
-)
-
-
-# ============================================================
-# Общая подпись X и Y
-# ============================================================
-
-fig.update_layout(
-
-    title=(
-        "HP-DSC classification accuracy "
-        "versus n_splits"
-    ),
-
-    template="plotly_white",
-
-    width=1250,
-    height=850,
-
-    legend=dict(
-        title="Method",
-
-        orientation="h",
-
-        yanchor="bottom",
-        y=1.02,
-
-        xanchor="left",
-        x=0
-    ),
-
-    margin=dict(
-        l=100,
-        r=40,
-        t=100,
-        b=70
-    )
-)
-
-
-# Убираем индивидуальные подписи X у верхнего ряда,
-# чтобы рисунок не был перегружен.
-
-for col in range(1, 4):
-
-    fig.update_xaxes(
-        title=None,
-        row=1,
-        col=col
-    )
-
-# Но нижний ряд оставляем с подписью n_splits
-for col in range(1, 4):
-
-    fig.update_xaxes(
-        title="n_splits",
-        row=2,
-        col=col
-    )
-
-
+size = "20k"  # "20k", "30k", "40k"
+f = r"D:\Projects\explainable-highdim-svm-recognition\charts\res002-3_aggregated.xlsx"
+out = rf"D:\Projects\explainable-highdim-svm-recognition\charts\time_vs_processes_{size}.svg"
+
+hp,sv,bg = [pd.read_excel(f,s) for s in [f"HP-DSC-{size}","SVM",f"Bagging-{size}"]]
+l1 = lambda d: d.model.astype(str).str.contains("penalty='l1'",regex=False)
+
+hp = hp[hp.n_proc.isin([1,2,4,8])]
+hp10,hp500 = hp[hp.n_splits.eq(10)],hp[hp.n_splits.eq(500)]
+
+bg = bg[bg.n_proc.isin([1,2,4,8]) & bg.max_feats.eq(500) & bg.n_est.eq(200)]
+bg1,bg2 = bg[l1(bg)],bg[~l1(bg)]
+
+s = sv[sv.nTr_obj.eq(int(size[:-1])*1000)]
+s1,s2 = s[l1(s)].iloc[0],s[~l1(s)].iloc[0]
+
+colors = {"HP-DSC":"#1f77b4","Bagging":"#ff7f0e","SVM":"#2ca02c"}
+
+fig = make_subplots(rows=1,cols=2,subplot_titles=["L1","L2"],horizontal_spacing=.08)
+
+def add(d,name,col,dash="solid"):
+    fig.add_trace(go.Scatter(x=d.n_proc,y=d.tr_time_mean,mode="lines+markers",name=name,
+        line=dict(color=colors[name],width=2,dash=dash),
+        marker=dict(size=8,color=colors[name],symbol="circle" if name=="HP-DSC" else "square"),
+        error_y=dict(type="data",array=d.tr_time_std,visible=True,color=colors[name]),
+        hoverinfo="skip"),row=1,col=col)
+
+for col,mask in [(1,l1),(2,lambda d:~l1(d))]:
+    add(hp500[mask(hp500)],"HP-DSC",col,"dash")
+    add(bg1 if col==1 else bg2,"Bagging",col)
+
+for col,s in [(1,s1),(2,s2)]:
+    if col==1:
+        ymax=max(pd.concat([hp10[l1(hp10)].tr_time_mean,hp500[l1(hp500)].tr_time_mean,bg1.tr_time_mean]))
+        y=ymax*1.08
+    else:
+        y=s.tr_time_mean
+
+    fig.add_hline(y=y,row=1,col=col,line=dict(color=colors["SVM"],dash="dot",width=1.5))
+    fig.add_annotation(x=.98,y=y,xref=f"x{'' if col==1 else 2} domain",
+        text=f"SVM: {s.tr_time_mean:.1f} s",showarrow=False,xanchor="right",
+        yanchor="bottom",font=dict(color=colors["SVM"]),row=1,col=col)
+
+    if col==2:
+        fig.add_trace(go.Scatter(x=[1],y=[s.tr_time_mean],mode="markers",name="SVM",
+            marker=dict(size=9,color=colors["SVM"],symbol="diamond"),
+            error_y=dict(type="data",array=[s.tr_time_std],visible=True,color=colors["SVM"]),
+            hoverinfo="skip"),row=1,col=col)
+
+fig.update_xaxes(title_text="Number of processes",tickmode="array",tickvals=[1,2,4,8],
+                 showgrid=True,zeroline=False)
+fig.update_yaxes(title_text="Training time, s",showgrid=True,zeroline=False)
+fig.update_layout(width=1100,height=520,template="plotly_white",font=dict(size=13),
+                  legend=dict(orientation="h",y=1.08,x=0),margin=dict(l=70,r=30,t=70,b=60))
+
+fig.write_image(out,width=1100,height=520,scale=2)
 fig.show()
-
-
-# ============================================================
-# Сохранение
-# ============================================================
-
-
-fig.write_image(
-    r"D:\Projects\explainable-highdim-svm-recognition\charts\figure_2.svg",
-    width=1250,
-    height=850
-)
