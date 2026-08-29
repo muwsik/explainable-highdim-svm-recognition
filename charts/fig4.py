@@ -2,45 +2,66 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-size = "20k"  # "20k", "30k", "40k"
-f = r"D:\Projects\explainable-highdim-svm-recognition\charts\res002-3_aggregated.xlsx"
-out = rf"D:\Projects\explainable-highdim-svm-recognition\charts\accuracy_vs_processes_{size}.svg"
-procs = [1,2,4,8]
+sizes=["20k", "30k", "40k"]
+dsc_splits=[10, 100, 500]
+bagging_params=[(30,50), (50,250), (200,500)]
 
-hp,bg = [pd.read_excel(f,s) for s in [f"HP-DSC-{size}",f"Bagging-{size}"]]
-l1 = lambda d: d.model.astype(str).str.contains("penalty='l1'",regex=False)
+f=r"C:\Users\Victory\.vscode\repos\explainable-highdim-svm-recognition\charts\res002-4_aggregated.xlsx"
+out=r"C:\Users\Victory\.vscode\repos\explainable-highdim-svm-recognition\charts\time_vs_dataset.svg"
 
-hp = hp[hp.n_proc.isin(procs) & hp.n_splits.eq(500)]
-bg = bg[bg.n_proc.isin(procs) & bg.max_feats.eq(500) & bg.n_est.eq(200)]
+colors={"HP-DSC":"#1f77b4","Bagging":"#ff7f0e"}
+dashes=["dot","dash","solid"]
 
-hp_l1,hp_l2 = hp[l1(hp)],hp[~l1(hp)]
-bg_l1,bg_l2 = bg[l1(bg)],bg[~l1(bg)]
+hp={s:pd.read_excel(f,f"HP-DSC-{s}") for s in sizes}
+bg={s:pd.read_excel(f,f"Bagging-{s}") for s in sizes}
 
-colors = {"HP-DSC":"#1f77b4","Bagging":"#ff7f0e"}
+def is_l1(d):
+    return d.model.astype(str).str.contains("penalty='l1'",regex=False)
 
-fig = make_subplots(rows=1,cols=2,subplot_titles=["L1","L2"],horizontal_spacing=.08)
+fig=make_subplots(rows=1,cols=2,subplot_titles=["L1","L2"],horizontal_spacing=.08)
 
-def add(d,name,col,y="acc_mean",std="acc_std",dash="solid"):
-    if d.empty: return
-    d=d.sort_values("n_proc")
-    fig.add_trace(go.Scatter(x=d.n_proc,y=d[y],mode="lines+markers",name=name,
-        line=dict(color=colors[name],width=2,dash=dash),
-        marker=dict(size=8,color=colors[name],
-                    symbol="circle" if name=="HP-DSC" else "square"),
-        error_y=dict(type="data",array=d[std],visible=True,color=colors[name]),
+def add(x,y,e,name,label,col,dash,symbol):
+    if not all(pd.notna(v) for v in y): return
+    fig.add_trace(go.Scatter(
+        x=x,y=y,error_y=dict(type="data",array=e,visible=True),
+        mode="lines+markers",name=label,showlegend=col==1,
+        line=dict(color=colors[name],width=0.8,dash=dash),
+        marker=dict(size=5,color=colors[name],symbol=symbol),
         hoverinfo="skip"),row=1,col=col)
 
-add(hp_l1,"HP-DSC",1,"acc_tst_mean","acc_tst_std","dash")
-add(bg_l1,"Bagging",1)
-add(hp_l2,"HP-DSC",2,"acc_tst_mean","acc_tst_std","dash")
-add(bg_l2,"Bagging",2)
+for col,l1 in [(1,True),(2,False)]:
 
-fig.update_xaxes(title_text="Number of processes",tickmode="array",tickvals=procs,
-                 showgrid=True,zeroline=False)
-fig.update_yaxes(title_text="Accuracy",showgrid=True,zeroline=False)
-fig.update_layout(width=1100,height=520,template="plotly_white",font=dict(size=13),
-                  legend=dict(orientation="h",y=1.08,x=0),
-                  margin=dict(l=70,r=30,t=70,b=60))
+    for j,ns in enumerate(dsc_splits):
+        vals=[]; errs=[]
+        for s in sizes:
+            d=hp[s]
+            d=d[(d.n_proc==1)&(d.n_splits==ns)&
+                (is_l1(d) if l1 else ~is_l1(d))]
+            vals.append(d.tr_time_mean.iloc[0] if not d.empty else None)
+            errs.append(d.tr_time_std.iloc[0] if not d.empty else None)
 
-fig.write_image(out,width=1100,height=520,scale=2)
-fig.show()
+        add(sizes,vals,errs,"HP-DSC",
+            f"HP-DSC (n_splits={ns})",col,dashes[j],"circle")
+
+    for j,(ne,mf) in enumerate(bagging_params):
+        vals=[]; errs=[]
+        for s in sizes:
+            d=bg[s]
+            d=d[(d.n_proc==1)&(d.n_est==ne)&(d.max_feats==mf)&
+                (is_l1(d) if l1 else ~is_l1(d))]
+            vals.append(d.tr_time_mean.iloc[0] if not d.empty else None)
+            errs.append(d.tr_time_std.iloc[0] if not d.empty else None)
+
+        add(sizes,vals,errs,"Bagging",
+            f"Bagging (n_est={ne}, max_feats={mf})",
+            col,dashes[j],"square")
+
+fig.update_xaxes(title_text="Dataset size",showgrid=True,zeroline=False)
+fig.update_yaxes(title_text="Training time, s",showgrid=True,zeroline=False)
+
+fig.update_layout(
+    width=1150,height=540,template="plotly_white",font=dict(size=13),
+    legend=dict(orientation="h",y=1.08,x=0),
+    margin=dict(l=70,r=30,t=70,b=60))
+
+fig.write_image(out,width=1150,height=540,scale=2)

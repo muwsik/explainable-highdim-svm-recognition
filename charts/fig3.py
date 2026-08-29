@@ -2,50 +2,78 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-size = "20k"  # "20k", "30k", "40k"
-f = r"D:\Projects\explainable-highdim-svm-recognition\charts\res002-3_aggregated.xlsx"
-out = rf"D:\Projects\explainable-highdim-svm-recognition\charts\speedup_vs_processes_{size}.svg"
-procs = [1,2,4,8]
+size="20k"                  # "20k","30k","40k"
+metric="time"               # "acc" или "time"
+est_values=None        # None = все n_est
+dsc_splits=[50,100,200,500] # None = все n_splits
 
-hp,bg = [pd.read_excel(f,s) for s in [f"HP-DSC-{size}",f"Bagging-{size}"]]
-l1 = lambda d: d.model.astype(str).str.contains("penalty='l1'",regex=False)
+f=r"C:\Users\Victory\.vscode\repos\explainable-highdim-svm-recognition\charts\res002-4_aggregated.xlsx"
+out=rf"C:\Users\Victory\.vscode\repos\explainable-highdim-svm-recognition\charts\{metric}_vs_subspace_{size}.svg"
 
-hp = hp[hp.n_proc.isin(procs)]
-bg = bg[bg.n_proc.isin(procs) & bg.max_feats.eq(500) & bg.n_est.eq(200)]
+hp,bg,sv=[pd.read_excel(f,s) for s in [f"HP-DSC-{size}",f"Bagging-{size}","SVM"]]
+l1=lambda d:d.model.astype(str).str.contains("penalty='l1'",regex=False)
 
-hp_l1,hp_l2 = hp[l1(hp)],hp[~l1(hp)]
-bg_l1,bg_l2 = bg[l1(bg)],bg[~l1(bg)]
+n_feat=int(size[:-1])*1000
+hp["subspace"]=n_feat/hp.n_splits
+hp=hp[hp.n_proc.eq(1)]
+bg=bg[bg.n_proc.eq(1)]
+sv=sv[sv.nTr_obj.eq(n_feat)]
 
-colors = {"HP-DSC":"#1f77b4","Bagging":"#ff7f0e"}
+if dsc_splits is not None: hp=hp[hp.n_splits.isin(dsc_splits)]
+if est_values is not None: bg=bg[bg.n_est.isin(est_values)]
 
-fig = make_subplots(rows=1,cols=2,subplot_titles=["L1","L2"],horizontal_spacing=.08)
+cols={"acc":("acc_mean","acc_std","Accuracy"),
+      "time":("tr_time_mean","tr_time_std","Training time, s")}
+bg_y,bg_std,ylabel=cols[metric]
+hp_y="acc_tst_mean" if metric=="acc" else "tr_time_mean"
+hp_std="acc_tst_std" if metric=="acc" else "tr_time_std"
 
-def add(d,name,col,dash="solid"):
-    if d.empty or not d.n_proc.eq(1).any(): return
-    d=d.sort_values("n_proc").copy()
-    t1=d.loc[d.n_proc.eq(1),"tr_time_mean"].iloc[0]
-    d["speedup"]=t1/d.tr_time_mean
-    fig.add_trace(go.Scatter(x=d.n_proc,y=d.speedup,mode="lines+markers",
-        name=name,line=dict(color=colors[name],width=2,dash=dash),
-        marker=dict(size=8,color=colors[name],
-                    symbol="circle" if name=="HP-DSC" else "square"),
+colors={"HP-DSC":"#1f77b4","Bagging":"#ff7f0e","SVM":"#2ca02c"}
+dashes={10:"dot",50:"dash",100:"dashdot",200:"solid"}
+
+fig=make_subplots(rows=1,cols=2,subplot_titles=["L1","L2"],horizontal_spacing=.08)
+
+def add(d,name,col,xcol,ycol,stdcol,symbol="circle",showlegend=False,dash="solid"):
+    if d.empty:return
+    d=d.sort_values(xcol); c=colors[name]
+    fig.add_trace(go.Scatter(x=d[xcol],y=d[ycol],mode="lines+markers",
+        name=name,showlegend=showlegend,line=dict(color=c,width=0.8,dash=dash),
+        marker=dict(size=5,color=c,symbol=symbol),
+        error_y=dict(type="data",array=d[stdcol],visible=True,color=c),
         hoverinfo="skip"),row=1,col=col)
 
-add(hp_l1[hp_l1.n_splits.eq(500)],"HP-DSC",1,"dash")
-add(bg_l1,"Bagging",1)
+for col,mask,s in [(1,l1,sv[l1(sv)]),(2,lambda d:~l1(d),sv[~l1(sv)])]:
+    h=hp[mask(hp)]
+    add(h,"HP-DSC",col,"subspace",hp_y,hp_std,"circle",True)
 
-add(hp_l2[hp_l2.n_splits.eq(500)],"HP-DSC",2,"dash")
-add(bg_l2,"Bagging",2)
+    b=bg[mask(bg)]
+    for i,ne in enumerate(sorted(b.n_est.unique())):
+        add(b[b.n_est.eq(ne)],"Bagging",col,"max_feats",bg_y,bg_std,
+            "square",i==0,dashes.get(ne,"solid"))
 
-fig.add_hline(y=1,row=1,col=1,line=dict(color="gray",dash="dot",width=1))
-fig.add_hline(y=1,row=1,col=2,line=dict(color="gray",dash="dot",width=1))
+    if not s.empty:
+        s=s.iloc[0]
+        sy=s[bg_y]
 
-fig.update_xaxes(title_text="Number of processes",tickmode="array",tickvals=procs,
-                 showgrid=True,zeroline=False)
-fig.update_yaxes(title_text="Speedup",showgrid=True,zeroline=False)
-fig.update_layout(width=1100,height=520,template="plotly_white",font=dict(size=13),
-                  legend=dict(orientation="h",y=1.08,x=0),
-                  margin=dict(l=70,r=30,t=70,b=60))
+        if metric=="time" and col==1:
+            vals=pd.concat([h[hp_y],b[bg_y]]).dropna()
+            sy=vals.max()*1.05 if not vals.empty else sy
 
-fig.write_image(out,width=1100,height=520,scale=2)
-fig.show()
+        fig.add_hline(y=sy,row=1,col=col,
+            line=dict(color=colors["SVM"],dash="dot",width=1.5))
+
+        fig.add_annotation(x=.98,y=sy,
+            xref=f"x{'' if col==1 else 2} domain",
+            text=f"SVM: {s[bg_y]:.2f} s",
+            showarrow=False,xanchor="right",yanchor="bottom",
+            font=dict(color=colors["SVM"]),row=1,col=col)
+
+fig.add_trace(go.Scatter(x=[None],y=[None],mode="lines",name="SVM",
+    line=dict(color=colors["SVM"],dash="dot",width=1.5)),row=1,col=1)
+
+fig.update_xaxes(title_text="Features per subspace",showgrid=True,zeroline=False)
+fig.update_yaxes(title_text=ylabel,showgrid=True,zeroline=False)
+fig.update_layout(width=1150,height=540,template="plotly_white",font=dict(size=13),
+    legend=dict(orientation="h",y=1.08,x=0),margin=dict(l=70,r=30,t=70,b=60))
+
+fig.write_image(out,width=1150,height=540,scale=2)
