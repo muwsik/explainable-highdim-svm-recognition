@@ -1,5 +1,6 @@
 ﻿import numpy as np
- 
+from scipy.io import loadmat
+
 
 def load_electrodes(
     filepath,
@@ -10,15 +11,15 @@ def load_electrodes(
 
     if X.ndim != 2: 
         raise ValueError(
-            f"Ожидалась двумерная матрица, получено shape={X.shape}"
+            f"A two‑dimensional matrix was expected, but received shape={X.shape}"
         )
 
     expected_columns = n_electrodes * signals_per_electrode
 
     if X.shape[1] != expected_columns:
         raise ValueError(
-            f"Неверное количество столбцов: {X.shape[1]}. "
-            f"Ожидалось {expected_columns} "
+            f"Incorrect number of columns: {X.shape[1]}. "
+            f"Expected {expected_columns} "
             f"({n_electrodes} × {signals_per_electrode})."
         )
 
@@ -30,38 +31,33 @@ def load_electrodes(
     return electrodes
 
 
-def build_kernels(electrodes, classes, ind_electrodes,
-                  train_indices, test_indices):
+def prepare_data(
+    signals_path,
+    classes_path,
+    ind_electrodes,
+    n_electrodes = 66,
+    signals_per_electrode = 100,
+):
+    electrodes = load_electrodes(
+        signals_path,
+        n_electrodes,
+        signals_per_electrode,
+    )
 
-    train_types = classes[train_indices]
-    test_types = classes[test_indices]
+    y = loadmat(classes_path)["classes"].ravel().copy()
 
-    n_train = len(train_indices)
-    n_test = len(test_indices)
-    n_signals = electrodes[0].shape[1]
-    n_kernels = len(ind_electrodes) * n_signals
+    if ind_electrodes is None:
+        ind_electrodes = range(1, n_electrodes + 1)
 
-    kadd = np.eye(n_train) + np.outer(train_types, train_types)
+    X = np.hstack([
+        electrodes[el - 1]
+        for el in ind_electrodes
+    ])
 
-    train_kernels = np.zeros((n_train, n_train, n_kernels))
-    test_kernels = np.zeros((n_train, n_test, n_kernels))
+    if len(y) != X.shape[0]:
+        raise ValueError(
+            f"The number of class labels ({len(y)}) "
+            f"does not match the number of objects ({X.shape[0]})."
+        )
 
-    k = 0
-
-    for el in ind_electrodes:
-        signals = electrodes[el - 1]
-
-        for j in range(n_signals):
-            vec = signals[:, j]
-            kernel = np.outer(vec, vec)
-
-            train_kernels[:, :, k] = (
-                kadd * kernel[np.ix_(train_indices, train_indices)]
-            )
-            test_kernels[:, :, k] = (
-                kernel[np.ix_(train_indices, test_indices)]
-            )
-
-            k += 1
-
-    return train_kernels, test_kernels, train_types, test_types
+    return X, y

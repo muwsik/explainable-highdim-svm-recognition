@@ -1,10 +1,12 @@
-﻿import numpy as np
+﻿# License file needs to be placed in "C:\Users\<user>\mosek\mosek.lic"
+# Trial license on cite https://www.mosek.com/products/trial/
 import mosek
+
+import numpy as np
 from scipy.sparse import lil_matrix
 
 
 def kernel_task_SKM_MSK(k, n, C):
-
     nnz_q = n * (n + 1) // 2
 
     qcsubi = np.tile(
@@ -54,7 +56,6 @@ def kernel_task_SKM_MSK(k, n, C):
 
 
 def kernel_SKM_MSK_origin(data, labels, task, mu):
-
     n, _, k = data.shape
 
     qcval = data.ravel(order="F")[task["ind"]]
@@ -139,12 +140,19 @@ def kernel_SKM_MSK_origin(data, labels, task, mu):
 
     mt.optimize()
 
+    solsta = mt.getsolsta(mosek.soltype.itr)
+
+    if solsta != mosek.solsta.optimal:
+        raise RuntimeError(
+            f"MOSEK: The solution is not optimal."
+            f"Status: {solsta}"
+        )
+
     xx = np.asarray(mt.getxx(mosek.soltype.itr))
     suc = np.asarray(mt.getsuc(mosek.soltype.itr))
     slc = np.asarray(mt.getslc(mosek.soltype.itr))
 
     return {
-        "optres": 0,
         "lambda": xx[:n],
         "r": -2 * suc[:k],
         "b": -suc[-1] - slc[-1],
@@ -152,59 +160,79 @@ def kernel_SKM_MSK_origin(data, labels, task, mu):
     }
 
 
-def calc_errors(alg_output, test_kernels, train_kernels):
+def build_kernels(X_left, X_right):
+    n_left, n_features = X_left.shape
+    n_right = X_right.shape[0]
 
-    train_types = train_kernels["types"]
-    test_types = test_kernels["types"]
-    kernels = test_kernels["kernels"]
+    kernels = np.zeros((n_left, n_right, n_features))
 
-    n_train = len(train_types)
-    n_test = len(test_types)
-    n_kernels = kernels.shape[2]
+    for j in range(n_features):
+        kernels[:, :, j] = np.outer(
+            X_left[:, j],
+            X_right[:, j],
+        )
 
-    K = np.zeros((n_train, n_test))
+    return kernels
 
-    for i in range(n_kernels):
-        K += kernels[:, :, i] * alg_output["r"][i]
 
-    weights = alg_output["lambda"] * train_types
-    scores = np.sum(weights[:, None] * K, axis=0) + alg_output["b"] 
+if __name__ == "__main__":    
+    import preprocessing
+    import sklearn.metrics 
 
-    obtained_types = np.sign(scores)
+    ### Parameters
+    ind_electrodes = [16, 26, 27, 28, 30, 33, 34, 37, 39, 42, 46, 53, 60]
+    sel = 0
+    C = 10
 
-    nP = np.sum(test_types == 1)
-    nN = np.sum(test_types == -1)
+    print(f"\nSVM C = {C}")
+    print(f"electrodes: {ind_electrodes}")
+    print(f"sel = {sel}")
+    print(f"mu = sel^2/2 = {sel**2 / 2:.3f}")
+    
 
-    nFN = np.sum(
-        (test_types == 1) & (obtained_types != test_types)
-    )
+    ### Preprocessing
+    x_data, y_data = preprocessing.prepare_data(
+        r"SFSVM\data\signals_oliver_smooth_w11_scale.txt",
+        r"SFSVM\data\classes.mat",
+        ind_electrodes
+    )    
+    x_train = x_data[:196]; y_train = y_data[:196]
+    x_test = x_data[196:]; y_test = y_data[196:]
 
-    nFP = np.sum(
-        (test_types == -1) & (obtained_types != test_types)
-    )
 
-    # в матлабе была ошибка
-    nTP = nP - nFN
-    nTN = nN - nFP
+    ### fit
+    kernels = build_kernels(x_train, x_train)
+    kadd = np.eye(len(y_train)) + np.outer(y_train, y_train)
+    train_kernels = kernels * kadd[:, :, None] 
 
-    error = {
-        "nObj": n_test,
-        "nP": nP,
-        "nN": nN,
-        "nFP": nFP,
-        "nFN": nFN,
-        "nTP": nTP,
-        "nTN": nTN,
-        "ER": (nFP + nFN) / n_test,
-        "FNR": nFN / nP,
-        "FPR": nFP / nN,
-        "Precision": nTP / (nTP + nFP),
-        "Recall": nTP / (nTP + nFN),
-    }
+    # n - objects, k - features
+    n, k = x_train.shape
+    empty_task = kernel_task_SKM_MSK(k, n, C)
 
-    error["Fmeasure05"] = (
-        2 * error["Precision"] * error["Recall"]
-        / (error["Precision"] + error["Recall"])
-    )
+    fit_result = kernel_SKM_MSK_origin(train_kernels, y_train,
+                                        empty_task, sel**2)
 
-    return error, scores
+    print("r1 =", np.sum(np.abs(fit_result["r"] - 1.0) < 1e-5))
+    print("r001 =", np.sum(fit_result["r"] >= 0.01))
+
+
+    ### decision_function
+    kernels = build_kernels(x_train, x_test)
+
+    K = np.zeros((x_train.shape[0], x_test.shape[0]))
+    for i in range(kernels.shape[2]):
+        K += kernels[:, :, i] * fit_result["r"][i]
+
+    weights = fit_result["lambda"] * y_train
+    kernel_part = np.sum(weights[:, None] * K, axis=0)
+    predict_scores = kernel_part + fit_result["b"]
+    y_predict = np.sign(predict_scores)
+    
+    auc = sklearn.metrics.roc_auc_score(y_test, predict_scores)
+    print(f"AUC = {auc:.4f}")
+    
+    # cm = sklearn.metrics.confusion_matrix(y_test, y_predict)
+    # print(f"{cm}")
+
+    # rep = sklearn.metrics.classification_report(y_test, y_predict)
+    # print(f"{rep}")
