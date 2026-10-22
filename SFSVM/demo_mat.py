@@ -1,7 +1,7 @@
 ﻿import numpy as np
 from sklearn.metrics import roc_auc_score
 
-from preprocessing import prepare_data
+from preprocessing import load_matlab_data, preprocess_raw_signals, split_data
 from SFSVM import SFSVM
 
 
@@ -11,16 +11,30 @@ if __name__ == "__main__":
     # They are sequential numbers: first is 1, last is 66
     ind_electrodes = [16, 26, 27, 28, 30, 33, 34, 37, 39, 42, 46, 53, 60]
     sel = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
-    C = 10
+    C = 100
     ##
 
-    x_data, y_data = prepare_data(r"SFSVM\data\signals_oliver_smooth_w11_scale.txt",
-        r"SFSVM\data\classes.mat",
-        ind_electrodes
-    )    
+    # Loading raw data
+    raw_signals, labels = load_matlab_data(
+        matlab_file_path = "SFSVM/data/workspace_oliver.mat",
+        classes_path = "SFSVM/data/classes.mat",
+    )
 
-    x_train = x_data[:196]; y_train = y_data[:196]
-    x_test = x_data[196:]; y_test = y_data[196:]
+    # Preprocessing
+    signals = preprocess_raw_signals(
+        raw_signals,
+        thin = True,
+        step = 11,
+        smooth = True,
+        window = 11,
+        scale = False,
+    )
+
+    print("Raw signals:", raw_signals.shape)
+    print("Preprocessed signals:", signals.shape)
+    print("Labels:", labels.shape)    
+
+    x_train, x_test, y_train, y_test = split_data(signals, labels, ind_electrodes)
 
     for temp_sel in sel:
         print(f"\nSVM C = {C}")
