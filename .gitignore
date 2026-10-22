@@ -48,6 +48,6 @@ datasets/RCV1/rcv1_train.binary.libsvm
 datasets/RCV1/rcv1_test.binary.libsvm
 datasets/RCV1/rcv1_test.binary.bz2
 
-SFSVM/data/signals_oliver_smooth_w11_scale.txt
 SFSVM/data/signals_oliver_smooth_w11.txt
+SFSVM/data/signals_oliver_smooth_w11_scale.txt
 SFSVM/data/workspace_oliver.mat
