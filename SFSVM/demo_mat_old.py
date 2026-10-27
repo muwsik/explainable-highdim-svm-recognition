@@ -1,8 +1,8 @@
 ﻿import numpy as np
 from sklearn.metrics import roc_auc_score
 
-from preprocessing import prepare_txt_data
-from SFSVM import SFSVM
+from preprocessing import load_matlab_data, preprocess_raw_signals, split_data
+from SFSVM import SFSVM_old
 
 
 if __name__ == "__main__":
@@ -14,21 +14,36 @@ if __name__ == "__main__":
     C = 100
     ##
 
-    x_data, y_data = prepare_txt_data(r"SFSVM\data\signals_oliver_smooth_w11.txt",
-        r"SFSVM\data\classes.mat",
-        ind_electrodes
-    )    
+    # Loading raw data
+    raw_signals, labels = load_matlab_data(
+        matlab_file_path = "SFSVM/data/workspace_oliver.mat",
+        classes_path = "SFSVM/data/classes.mat",
+    )
 
-    x_train = x_data[:196]; y_train = y_data[:196]
-    x_test = x_data[196:]; y_test = y_data[196:]
+    # Preprocessing
+    signals = preprocess_raw_signals(
+        raw_signals,
+        thin = True,
+        step = 11,
+        smooth = True,
+        window = 11,
+        scale = False,
+    )
+
+    print("Raw signals:", raw_signals.shape)
+    print("Preprocessed signals:", signals.shape)
+    print("Labels:", labels.shape)    
+
+    x_train, x_test, y_train, y_test = split_data(signals, labels, ind_electrodes)
 
     for temp_sel in sel:
+        print("\n=== OLD Experiment ===")
         print(f"\nSVM C = {C}")
         print(f"electrodes: {ind_electrodes}")
         print(f"sel = {temp_sel}")
         print(f"mu = sel^2/2 = {temp_sel**2 / 2 :.3f}")
 
-        model = SFSVM(temp_sel**2, C)
+        model = SFSVM_old(temp_sel**2, C)
 
         model.fit(x_train, y_train)
 

@@ -1,17 +1,16 @@
 ﻿import numpy as np
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, classification_report
 
 from preprocessing import load_matlab_data, preprocess_raw_signals, split_data
-from SFSVM import SFSVM
-
+from SFSVM import SFSVM_new
 
 if __name__ == "__main__":
     ## Parameters
     # Indices in Matlab start from 1
     # They are sequential numbers: first is 1, last is 66
     ind_electrodes = [16, 26, 27, 28, 30, 33, 34, 37, 39, 42, 46, 53, 60]
-    sel = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
-    C = 100
+    MU = [0, 0.0025, 0.005, 0.0075, 0.01, 0.025] 
+    C = 10
     ##
 
     # Loading raw data
@@ -36,20 +35,22 @@ if __name__ == "__main__":
 
     x_train, x_test, y_train, y_test = split_data(signals, labels, ind_electrodes)
 
-    for temp_sel in sel:
+    for _mu in MU:        
+        print("\n=== NEW Experiment ===")
         print(f"\nSVM C = {C}")
         print(f"electrodes: {ind_electrodes}")
-        print(f"sel = {temp_sel}")
-        print(f"mu = sel^2/2 = {temp_sel**2 / 2 :.3f}")
+        print(f"mu = {_mu}")
 
-        model = SFSVM(temp_sel**2, C)
+        model = SFSVM_new(_mu, C)
 
         model.fit(x_train, y_train)
 
-        print("r1 =", np.sum(np.abs(model.fit_result["r"] - 1.0) < 1e-5))
-        print("r001 =", np.sum(model.fit_result["r"] >= 0.01))
-
         predict_scores = model.decision_function(x_test)
-    
+        predict_labels = model.predict(x_test)
+
         auc = roc_auc_score(y_test, predict_scores)
-        print(f"AUC = {auc:.4f}")
+        report = classification_report(y_test, predict_labels, labels = [1, -1])
+
+        print("\nClassification:")
+        print("AUC:", f"{auc:.4f}")
+        print('\n'.join(report.splitlines()[:6]))  
